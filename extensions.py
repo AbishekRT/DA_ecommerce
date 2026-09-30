@@ -18,10 +18,14 @@ except Exception:
 # MongoDB connection (Local, VPS, and Cloud Atlas Support)
 # ---------------------------------------------------------------------------
 mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+client_kwargs = {
+    "serverSelectionTimeoutMS": 5000,
+    "connectTimeoutMS": 5000,
+}
 if "mongodb+srv://" in mongo_uri and ca:
-    client = MongoClient(mongo_uri, tlsCAFile=ca)
-else:
-    client = MongoClient(mongo_uri)
+    client_kwargs["tlsCAFile"] = ca
+
+client = MongoClient(mongo_uri, **client_kwargs)
 
 db = client[os.getenv("DATABASE_NAME", "projector_ecommerce")]
 
