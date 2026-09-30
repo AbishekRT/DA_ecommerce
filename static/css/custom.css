@@ -446,8 +446,138 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Magcubic E-Commerce Header, Hero Banner & Retail Styling
+   Magcubic Pixel-to-Pixel Product Grid (Matched to Reference Image)
    -------------------------------------------------------------------------- */
+.magcubic-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0 1.25rem 0;
+  margin-bottom: 1.5rem;
+}
+
+.magcubic-count {
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.magcubic-sort-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-right: 0.25rem;
+}
+
+.magcubic-sort-select {
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+}
+
+.magcubic-sort-select:focus {
+  outline: none;
+}
+
+.magcubic-product-card {
+  background: transparent;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-bottom: 0.75rem;
+  transition: transform 0.25s ease;
+}
+
+.magcubic-product-card:hover {
+  transform: translateY(-4px);
+}
+
+.magcubic-badge-save {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: #eb2227;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+  z-index: 5;
+  line-height: 1.2;
+}
+
+.magcubic-img-box {
+  background: #ffffff;
+  border-radius: 4px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.magcubic-img-box img {
+  max-height: 200px;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.magcubic-product-card:hover .magcubic-img-box img {
+  transform: scale(1.05);
+}
+
+.magcubic-title {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 400;
+  line-height: 1.45;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+  height: 2.9em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.magcubic-price-box {
+  text-align: center;
+  margin-top: auto;
+}
+
+.magcubic-price-red {
+  color: #eb2227;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.magcubic-price-strike {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-decoration: line-through;
+  margin-left: 0.4rem;
+  font-weight: 400;
+}
+
+.magcubic-rent-text {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-top: 0.2rem;
+}
+
 .top-promo-bar {
   background-color: #000000;
   color: #ffffff;
