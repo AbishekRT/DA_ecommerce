@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="badge bg-warning text-dark fw-bold text-uppercase px-3 py-1.5 rounded-pill small" style="font-size: 0.725rem; letter-spacing: 0.5px;">
+      <i class="bi bi-shield-lock-fill me-1"></i>Administrator Console
+    </span>
+    <h1 class="h3 fw-bold mt-2 mb-0 text-dark">Management Dashboard</h1>
+  </div>
+  
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.products_list') }}" class="btn btn-outline-primary rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-box-seam me-1"></i>Products Catalog
+    </a>
+    <a href="{{ url_for('admin.orders_list') }}" class="btn btn-outline-success rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-bag-check me-1"></i>Customer Orders
+    </a>
+    <a href="{{ url_for('admin.rentals_list') }}" class="btn btn-outline-info rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-calendar-range me-1"></i>Rental Bookings
+    </a>
+  </div>
+</div>
+
+<!-- Elevated KPI Metric Cards Grid -->
+<div class="row g-3 mb-4">
+  <!-- Total Products -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card h-100 d-flex flex-column justify-content-between">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Total Inventory</div>
+          <div class="kpi-value">{{ total_products }}</div>
+        </div>
+        <div class="kpi-icon-container kpi-icon-indigo">
+          <i class="bi bi-projector-fill"></i>
+        </div>
+      </div>
+      <div>
+        <span class="trend-badge trend-badge-info">
+          <i class="bi bi-grid me-1"></i>Across 5 Categories
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Orders -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card h-100 d-flex flex-column justify-content-between">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Customer Orders</div>
+          <div class="kpi-value">{{ total_orders }}</div>
+        </div>
+        <div class="kpi-icon-container kpi-icon-emerald">
+          <i class="bi bi-bag-check-fill"></i>
+        </div>
+      </div>
+      <div>
+        <span class="trend-badge trend-badge-up">
+          <i class="bi bi-graph-up-arrow me-1"></i>&uarr; +14.5% Active
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Rentals -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card h-100 d-flex flex-column justify-content-between">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Rental Fleet</div>
+          <div class="kpi-value">{{ total_rentals }}</div>
+        </div>
+        <div class="kpi-icon-container kpi-icon-amber">
+          <i class="bi bi-calendar2-range-fill"></i>
+        </div>
+      </div>
+      <div>
+        <span class="trend-badge trend-badge-neutral">
+          <i class="bi bi-shield-check me-1"></i>100% Operational
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Customers -->
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card h-100 d-flex flex-column justify-content-between">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="kpi-label">Registered Accounts</div>
+          <div class="kpi-value">{{ total_customers }}</div>
+        </div>
+        <div class="kpi-icon-container kpi-icon-cyan">
+          <i class="bi bi-people-fill"></i>
+        </div>
+      </div>
+      <div>
+        <span class="trend-badge trend-badge-up">
+          <i class="bi bi-person-check-fill me-1"></i>Verified Clients
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Aggregations Analytics Row with Tabular Precision -->
+<div class="row g-4">
+  <!-- Revenue by Category Pipeline -->
+  <div class="col-lg-6">
+    <div class="dashboard-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h6 class="fw-bold mb-0 text-dark">
+          <i class="bi bi-pie-chart-fill me-2 text-primary"></i>Revenue by Category
+        </h6>
+        <span class="badge bg-light text-muted border">MongoDB $group</span>
+      </div>
+      <div class="p-0">
+        {% if revenue_by_category %}
+        <div class="table-responsive">
+          <table class="table table-hover table-custom-clean mb-0">
+            <thead>
+              <tr>
+                <th>Category Name</th>
+                <th class="text-end">Total Revenue (LKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in revenue_by_category %}
+              <tr>
+                <td class="fw-semibold text-dark">
+                  <i class="bi bi-folder2-open text-primary me-2"></i>{{ row._id }}
+                </td>
+                <td class="text-end fw-bold text-success fs-6">
+                  LKR {{ "{:,.0f}".format(row.revenue) }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted p-4 text-center mb-0">No order revenue records found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Rental Utilisation Pipeline -->
+  <div class="col-lg-6">
+    <div class="dashboard-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h6 class="fw-bold mb-0 text-dark">
+          <i class="bi bi-bar-chart-line-fill me-2 text-info"></i>Equipment Utilisation
+        </h6>
+        <span class="badge bg-light text-muted border">Duration Pipeline</span>
+      </div>
+      <div class="p-0">
+        {% if rental_utilisation %}
+        <div class="table-responsive">
+          <table class="table table-hover table-custom-clean mb-0">
+            <thead>
+              <tr>
+                <th>Product Model</th>
+                <th>Brand</th>
+                <th class="text-end">Days Rented</th>
+                <th class="text-end">Bookings</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rental_utilisation %}
+              <tr>
+                <td class="fw-semibold text-dark">{{ row.name }}</td>
+                <td><span class="badge bg-light text-secondary border fw-medium px-2 py-0.5">{{ row.brand }}</span></td>
+                <td class="text-end fw-bold text-indigo">{{ row.total_days }} days</td>
+                <td class="text-end">
+                  <span class="status-pill status-pill-completed fw-bold">{{ row.booking_count }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted p-4 text-center mb-0">No rental history records found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

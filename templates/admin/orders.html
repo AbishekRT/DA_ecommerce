@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Customer Orders : Management Console{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="badge bg-success-subtle text-success fw-bold text-uppercase px-3 py-1.5 rounded-pill small" style="font-size: 0.725rem; letter-spacing: 0.5px;">
+      <i class="bi bi-bag-check-fill me-1"></i>Sales &amp; Dispatches
+    </span>
+    <h1 class="h3 fw-bold mt-2 mb-0 text-dark">Customer Orders</h1>
+  </div>
+  
+  <div class="d-flex gap-2">
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-speedometer2 me-1"></i>Dashboard
+    </a>
+    {% endif %}
+    <a href="{{ url_for('admin.rentals_list') }}" class="btn btn-outline-info rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-calendar-range me-1"></i>Rental Bookings
+    </a>
+  </div>
+</div>
+
+{% if orders %}
+<div class="dashboard-card mb-4">
+  <div class="table-responsive">
+    <table class="table table-hover table-custom-clean mb-0">
+      <thead>
+        <tr>
+          <th>Order Ref</th>
+          <th>Customer Details</th>
+          <th>Items Ordered</th>
+          <th class="text-end">Total Amount</th>
+          <th>Order Status</th>
+          <th>Placed On</th>
+          <th class="text-end">Update Lifecycle</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><code class="text-indigo fw-bold">{{ (order._id | string)[:10] }}...</code></td>
+          <td>
+            <div class="fw-bold text-dark">{{ order.customer.name if order.customer else 'Guest Customer' }}</div>
+            <small class="text-muted">{{ order.customer.email if order.customer else '' }}</small>
+          </td>
+          <td>
+            {% if order.get('items') %}
+              <div class="small fw-semibold">{{ order['items'] | length }} product(s)</div>
+              <ul class="list-unstyled mb-0 small text-muted">
+                {% for item in order['items'] %}
+                <li>&bull; {{ item.name }} &times; {{ item.qty }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <span class="text-muted small">0 items</span>
+            {% endif %}
+          </td>
+          <td class="text-end fw-bold text-success fs-6">
+            LKR {{ "{:,.0f}".format(order.total) }}
+          </td>
+          <td>
+            {% set s = order.status %}
+            {% if s == 'pending' %}
+              <span class="status-pill status-pill-pending"><i class="bi bi-clock"></i>Pending</span>
+            {% elif s == 'confirmed' %}
+              <span class="status-pill status-pill-active"><i class="bi bi-check-circle"></i>Confirmed</span>
+            {% elif s == 'completed' %}
+              <span class="status-pill status-pill-completed"><i class="bi bi-check-all"></i>Completed</span>
+            {% elif s == 'cancelled' %}
+              <span class="status-pill status-pill-cancelled"><i class="bi bi-x-circle"></i>Cancelled</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ s | title }}</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if order.created_at %}
+              {{ order.created_at.strftime('%d %b %Y') if order.created_at.strftime is defined else order.created_at }}
+            {% else %}-{% endif %}
+          </td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('admin.update_order_status', order_id=order._id | string) }}"
+                  class="d-inline-flex gap-1 justify-content-end">
+              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 130px; font-size: 0.8rem;">
+                {% for status in ['pending', 'confirmed', 'completed', 'cancelled'] %}
+                <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>
+                  {{ status | title }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-dark rounded-2 px-3 fw-semibold">
+                Apply
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card p-5 text-center my-4 rounded-4 border-0 shadow-sm bg-white">
+  <i class="bi bi-bag-x fs-1 text-muted mb-2"></i>
+  <h5 class="fw-bold">No Orders Placed Yet</h5>
+  <p class="text-muted small">Customer purchasing orders will appear here.</p>
+</div>
+{% endif %}
+{% endblock %}

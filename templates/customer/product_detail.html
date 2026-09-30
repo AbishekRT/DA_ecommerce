@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} : ProjectorShop{% endblock %}
+
+{% block content %}
+<!-- Breadcrumbs -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb py-1.5 px-3 bg-white rounded-pill shadow-sm border d-inline-flex mb-0" style="font-size: 0.8rem;">
+    <li class="breadcrumb-item"><a href="{{ url_for('customer.catalog') }}" class="text-decoration-none text-muted"><i class="bi bi-grid me-1"></i>Catalog</a></li>
+    {% if category %}
+      <li class="breadcrumb-item"><a href="{{ url_for('customer.catalog') }}?category={{ category._id | string }}" class="text-decoration-none text-muted">{{ category.name }}</a></li>
+    {% endif %}
+    <li class="breadcrumb-item active fw-semibold text-primary" aria-current="page">{{ product.name }}</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+  <!-- Left Column: Product Studio Showcase -->
+  <div class="col-lg-6">
+    <div class="detail-card h-100 d-flex flex-column text-center">
+      <div class="detail-img-wrapper flex-grow-1">
+        {% if product.image_url %}
+          <img src="{{ product.image_url }}?v=2026_retail" alt="{{ product.name }}" class="img-fluid" />
+        {% else %}
+          <div class="d-flex flex-column align-items-center justify-content-center text-muted">
+            <i class="bi bi-projector" style="font-size: 4rem;"></i>
+            <span class="mt-2 small">Studio Hardware Image</span>
+          </div>
+        {% endif %}
+
+        <!-- Floating Badge -->
+        {% if product.type == 'sell' %}
+          <span class="retail-badge-save" style="top: 15px; left: 15px;">For Sale</span>
+        {% elif product.type == 'rent' %}
+          <span class="retail-badge-rent" style="top: 15px; left: 15px;">For Rent</span>
+        {% else %}
+          <span class="retail-badge-save" style="top: 15px; left: 15px; background-color: #0f172a;">Sale &amp; Rent</span>
+        {% endif %}
+      </div>
+
+      <!-- Specs Badges Overview -->
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3 pt-3 border-top">
+        {% if product.specs and product.specs.resolution %}
+          <span class="badge bg-light text-dark border px-3 py-1.5 fw-semibold" style="font-size: 0.8rem;">
+            <i class="bi bi-display text-primary me-1"></i>{{ product.specs.resolution }}
+          </span>
+        {% endif %}
+        {% if product.specs and product.specs.brightness_lumens %}
+          <span class="badge bg-light text-dark border px-3 py-1.5 fw-semibold" style="font-size: 0.8rem;">
+            <i class="bi bi-sun text-warning me-1"></i>{{ product.specs.brightness_lumens }} Lumens
+          </span>
+        {% endif %}
+        {% if product.specs and product.specs.throw_distance %}
+          <span class="badge bg-light text-dark border px-3 py-1.5 fw-semibold" style="font-size: 0.8rem;">
+            <i class="bi bi-arrows-expand text-info me-1"></i>{{ product.specs.throw_distance }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Details, Specs, Buy / Rent Actions -->
+  <div class="col-lg-6">
+    <div class="detail-card h-100 d-flex flex-column">
+      
+      <!-- Brand & Category -->
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-dark text-white fw-bold text-uppercase px-2.5 py-1 rounded-1" style="font-size: 0.725rem; letter-spacing: 0.5px;">
+          {{ product.brand }}
+        </span>
+        {% if category %}
+          <span class="text-muted small fw-medium">&bull; {{ category.name }}</span>
+        {% endif %}
+        {% if product.stock_qty > 0 %}
+          <span class="badge bg-success-subtle text-success ms-auto fw-semibold">
+            <i class="bi bi-check-circle me-1"></i>In Stock ({{ product.stock_qty }} units)
+          </span>
+        {% else %}
+          <span class="badge bg-danger-subtle text-danger ms-auto fw-semibold">
+            <i class="bi bi-x-circle me-1"></i>Out of Stock
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- Title & Description -->
+      <h1 class="h3 fw-bold mb-2 text-dark" style="font-size: 1.45rem; line-height: 1.3;">{{ product.name }}</h1>
+      <p class="text-muted mb-3" style="font-size: 0.875rem; line-height: 1.6;">{{ product.description }}</p>
+
+      <!-- Pricing Summary Box -->
+      <div class="p-3 rounded-3 mb-3 border bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+        {% if product.type in ['sell', 'both'] %}
+        <div>
+          <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Retail Price</small>
+          <div class="d-flex align-items-baseline gap-2">
+            <span class="fw-bold text-danger fs-4">LKR {{ "{:,.0f}".format(product.sale_price) }}</span>
+            <span class="text-muted text-decoration-line-through small">LKR {{ "{:,.0f}".format(product.sale_price * 1.15) }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if product.type in ['rent', 'both'] %}
+        <div class="text-md-end">
+          <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Daily Rental Rate</small>
+          <span class="fw-bold text-primary fs-5">
+            <i class="bi bi-calendar-event me-1"></i>LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} <small class="text-muted fw-normal" style="font-size: 0.8rem;">/ day</small>
+          </span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Action Panels (Buy / Rent) -->
+      {% if current_user.is_authenticated and current_user.role == 'customer' %}
+        
+        <!-- Buy Option Panel -->
+        {% if product.type in ['sell', 'both'] %}
+        <div class="card p-3 mb-3 border border-warning-subtle bg-white shadow-sm rounded-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-dark small"><i class="bi bi-bag-check-fill text-warning me-1.5"></i>Buy New Projector</span>
+            <span class="text-muted small" style="font-size: 0.75rem;">Fast Island-wide Delivery</span>
+          </div>
+          <form method="POST" action="{{ url_for('customer.add_to_cart') }}">
+            <input type="hidden" name="product_id" value="{{ product._id | string }}" />
+            <input type="hidden" name="type" value="sell" />
+            <div class="row g-2 align-items-center">
+              <div class="col-auto">
+                <div class="qty-stepper">
+                  <button type="button" onclick="const q=document.getElementById('buy-qty'); if(q.value>1) q.value=parseInt(q.value)-1;">-</button>
+                  <input type="number" id="buy-qty" name="qty" value="1" min="1" max="{{ product.stock_qty }}" />
+                  <button type="button" onclick="const q=document.getElementById('buy-qty'); if(parseInt(q.value)<parseInt('{{ product.stock_qty }}')) q.value=parseInt(q.value)+1;">+</button>
+                </div>
+              </div>
+              <div class="col">
+                <button type="submit" class="btn-retail-cart">
+                  <i class="bi bi-cart-plus-fill"></i>ADD TO CART
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        {% endif %}
+
+        <!-- Rent Option Panel -->
+        {% if product.type in ['rent', 'both'] %}
+        <div class="card p-3 mb-3 border border-primary-subtle bg-white shadow-sm rounded-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-primary small"><i class="bi bi-calendar-range-fill me-1.5"></i>Rent for Events &amp; Presentations</span>
+            <span class="text-muted small" style="font-size: 0.75rem;">Instant Reservation</span>
+          </div>
+          <form method="POST" action="{{ url_for('customer.add_to_cart') }}">
+            <input type="hidden" name="product_id" value="{{ product._id | string }}" />
+            <input type="hidden" name="type" value="rent" />
+            <div class="row g-2 mb-2">
+              <div class="col-sm-6">
+                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 0.75rem;">Start Date:</label>
+                <input type="date" name="rent_start_date" class="form-control form-control-sm rounded-2" required />
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label text-muted fw-semibold mb-1" style="font-size: 0.75rem;">End Date:</label>
+                <input type="date" name="rent_end_date" class="form-control form-control-sm rounded-2" required />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold py-2 rounded-2">
+              <i class="bi bi-calendar-check-fill me-1.5"></i>Book Rental &amp; Add to Cart
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+      {% elif current_user.is_authenticated and current_user.role in ['admin', 'staff'] %}
+        <div class="alert alert-light border rounded-3 p-3 text-center my-2">
+          <div class="small text-muted"><i class="bi bi-shield-check me-1 text-primary"></i>Logged in with <strong>{{ current_user.role | title }}</strong> permissions. Customer shopping is disabled for staff accounts.</div>
+          {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin.product_edit', product_id=product._id | string) }}" class="btn btn-sm btn-outline-primary rounded-pill mt-2">
+            <i class="bi bi-pencil me-1"></i>Edit Product Specs
+          </a>
+          {% endif %}
+        </div>
+
+      {% else %}
+        <!-- Guest Prompt to Login -->
+        <div class="card p-3 text-center my-2 bg-light border-0 rounded-3">
+          <i class="bi bi-lock-fill text-primary d-block fs-3 mb-1"></i>
+          <h6 class="fw-bold mb-1">Sign In to Buy or Rent</h6>
+          <p class="text-muted small mb-2" style="font-size: 0.8rem;">Create an account or sign in to complete checkout and reserve dates.</p>
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm rounded-pill px-3">Sign In</a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Create Account</a>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Specifications Table -->
+      <div class="mt-auto pt-3 border-top">
+        <h6 class="fw-bold text-uppercase small text-muted mb-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+          <i class="bi bi-cpu me-1"></i>Technical Specifications
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0" style="font-size: 0.825rem;">
+            <tbody>
+              <tr><th class="bg-light text-muted" style="width:40%;">Native Resolution</th><td class="fw-semibold">{{ product.specs.resolution if product.specs else 'N/A' }}</td></tr>
+              <tr><th class="bg-light text-muted">Brightness</th><td>{{ product.specs.brightness_lumens if product.specs else 'N/A' }} ANSI Lumens</td></tr>
+              <tr><th class="bg-light text-muted">Throw Distance</th><td>{{ product.specs.throw_distance if product.specs else 'N/A' }}</td></tr>
+              <tr>
+                <th class="bg-light text-muted">Connectivity</th>
+                <td>
+                  {% if product.specs and product.specs.connectivity %}
+                    {{ product.specs.connectivity | join(', ') }}
+                  {% else %}N/A{% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

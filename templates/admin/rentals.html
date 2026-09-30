@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Rental Bookings : Management Console{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="badge bg-info-subtle text-info fw-bold text-uppercase px-3 py-1.5 rounded-pill small" style="font-size: 0.725rem; letter-spacing: 0.5px;">
+      <i class="bi bi-calendar2-range-fill me-1"></i>Equipment Logistics
+    </span>
+    <h1 class="h3 fw-bold mt-2 mb-0 text-dark">Rental Bookings</h1>
+  </div>
+  
+  <div class="d-flex gap-2">
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-speedometer2 me-1"></i>Dashboard
+    </a>
+    {% endif %}
+    <a href="{{ url_for('admin.orders_list') }}" class="btn btn-outline-success rounded-pill btn-sm fw-semibold px-3">
+      <i class="bi bi-bag-check me-1"></i>Customer Orders
+    </a>
+  </div>
+</div>
+
+{% if rentals %}
+<div class="dashboard-card mb-4">
+  <div class="table-responsive">
+    <table class="table table-hover table-custom-clean mb-0">
+      <thead>
+        <tr>
+          <th>Booking Ref</th>
+          <th>Customer Details</th>
+          <th>Hardware Model</th>
+          <th>Rental Duration</th>
+          <th class="text-end">Total Cost</th>
+          <th>Current Status</th>
+          <th class="text-end">Update Lifecycle</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rental in rentals %}
+        <tr>
+          <td><code class="text-indigo fw-bold">{{ (rental._id | string)[:10] }}...</code></td>
+          <td>
+            <div class="fw-bold text-dark">{{ rental.customer.name if rental.customer else 'Guest Client' }}</div>
+            <small class="text-muted">{{ rental.customer.email if rental.customer else '' }}</small>
+          </td>
+          <td>
+            <div class="fw-bold text-dark">{{ rental.product.name if rental.product else 'Unknown Hardware' }}</div>
+            <small class="text-muted">{{ rental.product.brand if rental.product else '' }}</small>
+          </td>
+          <td>
+            <div class="small fw-semibold text-primary">
+              <i class="bi bi-calendar-event me-1"></i>{{ rental.start_date }} &rarr; {{ rental.end_date }}
+            </div>
+          </td>
+          <td class="text-end fw-bold text-primary fs-6">
+            LKR {{ "{:,.0f}".format(rental.total_price) }}
+          </td>
+          <td>
+            {% set s = rental.status %}
+            {% if s == 'pending' %}
+              <span class="status-pill status-pill-pending"><i class="bi bi-clock"></i>Pending</span>
+            {% elif s == 'confirmed' %}
+              <span class="status-pill status-pill-active"><i class="bi bi-check-circle"></i>Confirmed</span>
+            {% elif s == 'active' %}
+              <span class="status-pill status-pill-reserved"><i class="bi bi-broadcast"></i>In Use</span>
+            {% elif s == 'returned' %}
+              <span class="status-pill status-pill-returned"><i class="bi bi-box-arrow-in-down"></i>Returned</span>
+            {% elif s == 'cancelled' %}
+              <span class="status-pill status-pill-cancelled"><i class="bi bi-x-circle"></i>Cancelled</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ s | title }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('admin.update_rental_status', rental_id=rental._id | string) }}"
+                  class="d-inline-flex gap-1 justify-content-end">
+              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 130px; font-size: 0.8rem;">
+                {% for status in ['pending', 'confirmed', 'active', 'returned', 'cancelled'] %}
+                <option value="{{ status }}" {% if rental.status == status %}selected{% endif %}>
+                  {{ status | title }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-dark rounded-2 px-3 fw-semibold">
+                Apply
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card p-5 text-center my-4 rounded-4 border-0 shadow-sm bg-white">
+  <i class="bi bi-calendar-x fs-1 text-muted mb-2"></i>
+  <h5 class="fw-bold">No Rental Bookings Yet</h5>
+  <p class="text-muted small">Customer rental reservations will appear here.</p>
+</div>
+{% endif %}
+{% endblock %}

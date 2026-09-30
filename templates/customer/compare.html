@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Compare Projectors : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
+      <i class="bi bi-arrow-left-right me-1"></i>Side-by-Side Analysis
+    </span>
+    <h1 class="display-6 fw-bold mt-2 mb-0">Projector Comparison</h1>
+  </div>
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-pill">
+    <i class="bi bi-arrow-left"></i>Back to Catalog
+  </a>
+</div>
+
+<!-- Selection Bar -->
+<div class="card p-3 mb-4 shadow-sm border-0 rounded-4">
+  <form method="GET" action="{{ url_for('customer.compare') }}" class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label fw-bold text-uppercase small text-muted">First Projector</label>
+      <select name="ids" class="form-select rounded-3">
+        <option value="">-- Choose Product 1 --</option>
+        {% for p in all_products %}
+        <option value="{{ p._id | string }}"
+          {% if selected_ids and (p._id | string) == selected_ids[0] %}selected{% endif %}>
+          {{ p.name }} : {{ p.brand }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-5">
+      <label class="form-label fw-bold text-uppercase small text-muted">Second Projector</label>
+      <select name="ids" class="form-select rounded-3">
+        <option value="">-- Choose Product 2 --</option>
+        {% for p in all_products %}
+        <option value="{{ p._id | string }}"
+          {% if selected_ids and selected_ids | length > 1 and (p._id | string) == selected_ids[1] %}selected{% endif %}>
+          {{ p.name }} : {{ p.brand }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-primary w-100 rounded-3">
+        <i class="bi bi-arrow-left-right"></i>Compare
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Comparison Table Cards -->
+{% if products | length == 2 %}
+{% set p1 = products[0] %}
+{% set p2 = products[1] %}
+
+<div class="row g-4 mb-4">
+  <!-- Product 1 Header Card -->
+  <div class="col-md-6">
+    <div class="card h-100 p-4 text-center border-primary shadow-sm rounded-4">
+      <div class="mb-3" style="height: 180px; display:flex; align-items:center; justify-content:center;">
+        {% if p1.image_url %}
+          <img src="{{ p1.image_url }}" alt="{{ p1.name }}" class="img-fluid" style="max-height: 170px; object-fit: contain;" />
+        {% else %}
+          <i class="bi bi-projector fs-1 text-muted"></i>
+        {% endif %}
+      </div>
+      <span class="badge bg-light text-muted border text-uppercase mb-1">{{ p1.brand }}</span>
+      <h4 class="fw-bold mb-2">{{ p1.name }}</h4>
+      <div class="mb-3">
+        {% if p1.type in ['sell', 'both'] %}
+          <div class="price-tag-sale fs-4">LKR {{ "{:,.0f}".format(p1.sale_price) }}</div>
+        {% endif %}
+        {% if p1.type in ['rent', 'both'] %}
+          <div class="price-tag-rent">LKR {{ "{:,.0f}".format(p1.rent_price_per_day) }} / day</div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('customer.product_detail', product_id=p1._id | string) }}" class="btn btn-outline-primary rounded-pill">
+        View Full Details <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Product 2 Header Card -->
+  <div class="col-md-6">
+    <div class="card h-100 p-4 text-center border-primary shadow-sm rounded-4">
+      <div class="mb-3" style="height: 180px; display:flex; align-items:center; justify-content:center;">
+        {% if p2.image_url %}
+          <img src="{{ p2.image_url }}" alt="{{ p2.name }}" class="img-fluid" style="max-height: 170px; object-fit: contain;" />
+        {% else %}
+          <i class="bi bi-projector fs-1 text-muted"></i>
+        {% endif %}
+      </div>
+      <span class="badge bg-light text-muted border text-uppercase mb-1">{{ p2.brand }}</span>
+      <h4 class="fw-bold mb-2">{{ p2.name }}</h4>
+      <div class="mb-3">
+        {% if p2.type in ['sell', 'both'] %}
+          <div class="price-tag-sale fs-4">LKR {{ "{:,.0f}".format(p2.sale_price) }}</div>
+        {% endif %}
+        {% if p2.type in ['rent', 'both'] %}
+          <div class="price-tag-rent">LKR {{ "{:,.0f}".format(p2.rent_price_per_day) }} / day</div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('customer.product_detail', product_id=p2._id | string) }}" class="btn btn-outline-primary rounded-pill">
+        View Full Details <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Specifications Comparison Table -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+  <div class="card-header bg-dark text-white p-3 fw-bold">
+    <i class="bi bi-cpu me-2 text-indigo"></i>Hardware &amp; Performance Specifications
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-custom mb-0">
+      <tbody>
+        <tr>
+          <th style="width: 25%;" class="bg-light">Availability Model</th>
+          <td style="width: 37.5%;">
+            {% if p1.type == 'sell' %}<span class="badge badge-sale">For Sale</span>
+            {% elif p1.type == 'rent' %}<span class="badge badge-rent">For Rent</span>
+            {% else %}<span class="badge badge-hybrid">Sale &amp; Rent</span>{% endif %}
+          </td>
+          <td style="width: 37.5%;">
+            {% if p2.type == 'sell' %}<span class="badge badge-sale">For Sale</span>
+            {% elif p2.type == 'rent' %}<span class="badge badge-rent">For Rent</span>
+            {% else %}<span class="badge badge-hybrid">Sale &amp; Rent</span>{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th class="bg-light">Native Resolution</th>
+          <td class="fw-semibold">{{ p1.specs.resolution if p1.specs else 'N/A' }}</td>
+          <td class="fw-semibold">{{ p2.specs.resolution if p2.specs else 'N/A' }}</td>
+        </tr>
+        <tr>
+          <th class="bg-light">Brightness (Lumens)</th>
+          <td>
+            <i class="bi bi-sun text-warning me-1"></i>
+            {{ p1.specs.brightness_lumens if p1.specs else 'N/A' }} ANSI Lumens
+          </td>
+          <td>
+            <i class="bi bi-sun text-warning me-1"></i>
+            {{ p2.specs.brightness_lumens if p2.specs else 'N/A' }} ANSI Lumens
+          </td>
+        </tr>
+        <tr>
+          <th class="bg-light">Throw Distance</th>
+          <td>{{ p1.specs.throw_distance if p1.specs else 'N/A' }}</td>
+          <td>{{ p2.specs.throw_distance if p2.specs else 'N/A' }}</td>
+        </tr>
+        <tr>
+          <th class="bg-light">Connectivity Ports</th>
+          <td>
+            {% if p1.specs and p1.specs.connectivity %}
+              {% for c in p1.specs.connectivity %}
+                <span class="badge bg-light text-dark border me-1">{{ c }}</span>
+              {% endfor %}
+            {% else %}N/A{% endif %}
+          </td>
+          <td>
+            {% if p2.specs and p2.specs.connectivity %}
+              {% for c in p2.specs.connectivity %}
+                <span class="badge bg-light text-dark border me-1">{{ c }}</span>
+              {% endfor %}
+            {% else %}N/A{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th class="bg-light">Stock Status</th>
+          <td>
+            {% if p1.stock_qty > 0 %}
+              <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>In Stock ({{ p1.stock_qty }})</span>
+            {% else %}
+              <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p2.stock_qty > 0 %}
+              <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>In Stock ({{ p2.stock_qty }})</span>
+            {% else %}
+              <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <i class="bi bi-arrow-left-right"></i>
+  </div>
+  <h4>Select 2 Projectors to Compare</h4>
+  <p>Choose any two models from the dropdown selectors above to compare side-by-side specs, resolution, lumens, throw distances, and prices.</p>
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold">
+    <i class="bi bi-grid-fill me-1.5"></i>Explore Catalog
+  </a>
+</div>
+{% endif %}
+{% endblock %}

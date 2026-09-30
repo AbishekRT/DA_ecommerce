@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}ProjectorShop : Premium Visual and Cinema Gear{% endblock %}</title>
+  
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5.3 & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  
+  <!-- Custom Design System with Cache-Buster -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v=11.0" />
+</head>
+{% set is_home = (request.endpoint == 'customer.catalog' and not request.args.get('category') and not request.args.get('type') and not request.args.get('q')) %}
+<body class="d-flex flex-column min-vh-100" style="background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+
+  <!-- Magcubic Main Navigation Bar (Transparent on Hero, Solid on Scroll) -->
+  <nav id="mainNavbar" class="navbar navbar-expand-lg magcubic-nav {% if is_home %}fixed-top nav-transparent{% else %}sticky-top nav-solid{% endif %} py-2.5">
+    <div class="container-fluid px-3 px-md-4">
+      <!-- Brand Logo -->
+      <a class="navbar-brand magcubic-brand me-4" href="{{ url_for('customer.catalog') }}">
+        <i class="bi bi-projector text-white" style="font-size: 1.3rem;"></i>
+        <span>PROJECTOR<span style="color: #6366f1;">SHOP</span></span>
+      </a>
+
+      <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+              aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <!-- Navigation Center Tabs -->
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+          {% if current_user.is_authenticated and current_user.role in ['admin', 'staff'] %}
+            {% if current_user.role == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('admin.dashboard') }}">
+                <i class="bi bi-speedometer2 me-1 text-warning"></i>Dashboard
+              </a>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('admin.products_list') }}">
+                <i class="bi bi-box-seam me-1 text-primary"></i>Manage Products
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('admin.orders_list') }}">
+                <i class="bi bi-bag-check me-1 text-success"></i>Customer Orders
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('admin.rentals_list') }}">
+                <i class="bi bi-calendar-range me-1 text-info"></i>Rental Bookings
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('customer.catalog') }}">
+                <i class="bi bi-eye me-1"></i>Storefront View
+              </a>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'customer.catalog' and not request.args.get('category') and not request.args.get('type') %}active fw-bold text-white{% endif %}" href="{{ url_for('customer.catalog') }}">All products</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('customer.catalog') }}?type=sell">Home Projectors</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('customer.catalog') }}?type=rent">Rental Fleet</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('customer.compare') }}">Compare</a>
+            </li>
+            {% if current_user.is_authenticated and current_user.role == 'customer' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('customer.order_history') }}">My Orders</a>
+            </li>
+            {% endif %}
+          {% endif %}
+        </ul>
+
+        <!-- Right Side Utility Icons -->
+        <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0">
+          <!-- Search Icon -->
+          <a href="{{ url_for('customer.catalog') }}" class="text-white text-decoration-none fs-5" title="Search Catalog">
+            <i class="bi bi-search"></i>
+          </a>
+
+          <!-- User Profile Dropdown / Sign In -->
+          {% if current_user.is_authenticated %}
+          <div class="dropdown">
+            <a class="text-white text-decoration-none fs-5 d-flex align-items-center gap-1.5" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+              {% if current_user.role == 'admin' %}
+                <span class="badge bg-warning text-dark py-0.5 px-1.5 rounded-pill" style="font-size: 0.65rem;">Admin</span>
+              {% elif current_user.role == 'staff' %}
+                <span class="badge bg-info text-dark py-0.5 px-1.5 rounded-pill" style="font-size: 0.65rem;">Staff</span>
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 p-2" style="min-width: 220px; font-size: 0.875rem;">
+              <li class="px-3 py-1.5">
+                <div class="small text-muted" style="font-size: 0.75rem;">Signed in as</div>
+                <div class="fw-bold text-truncate">{{ current_user.email }}</div>
+                {% if current_user.role in ['admin', 'staff'] %}
+                <div class="small text-capitalize text-indigo fw-semibold" style="font-size: 0.75rem;">Role: {{ current_user.role }}</div>
+                {% endif %}
+              </li>
+              <li><hr class="dropdown-divider my-1"></li>
+              {% if current_user.role == 'admin' %}
+              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2 text-warning"></i>Admin Console</a></li>
+              {% elif current_user.role == 'staff' %}
+              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.rentals_list') }}"><i class="bi bi-calendar-range me-2 text-info"></i>Rental Operations</a></li>
+              {% else %}
+              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('customer.order_history') }}"><i class="bi bi-bag-check me-2 text-primary"></i>My Orders &amp; Rentals</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider my-1"></li>
+              <li><a class="dropdown-item rounded-2 py-1.5 text-danger fw-semibold" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
+            </ul>
+          </div>
+          {% else %}
+          <a href="{{ url_for('auth.login') }}" class="text-white text-decoration-none fs-5" title="Sign In">
+            <i class="bi bi-person"></i>
+          </a>
+          {% endif %}
+
+          <!-- Cart Icon with Floating Badge -->
+          <a href="{{ url_for('customer.view_cart') }}" class="text-white text-decoration-none fs-5 position-relative me-1" title="Shopping Cart">
+            <i class="bi bi-bag"></i>
+            {% if session.get('cart') and session.get('cart') | length > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; padding: 0.25em 0.45em;">
+              {{ session.get('cart') | length }}
+            </span>
+            {% endif %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section (Full-Width Edge-to-Edge) -->
+  {% block hero %}{% endblock %}
+
+  <!-- Flash Notification Messages -->
+  <div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% set alert_class = 'primary' %}
+          {% set alert_icon = 'info-circle-fill' %}
+          {% if category == 'success' %}
+            {% set alert_class = 'success' %}
+            {% set alert_icon = 'check-circle-fill' %}
+          {% elif category == 'danger' or category == 'error' %}
+            {% set alert_class = 'danger' %}
+            {% set alert_icon = 'exclamation-triangle-fill' %}
+          {% elif category == 'warning' %}
+            {% set alert_class = 'warning' %}
+            {% set alert_icon = 'exclamation-circle-fill' %}
+          {% endif %}
+          <div class="alert alert-{{ alert_class }} d-flex align-items-center justify-content-between rounded-3 shadow-sm border-0 py-2.5 px-3 mb-2" role="alert" style="font-size: 0.875rem;">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-{{ alert_icon }} fs-5"></i>
+              <div class="fw-medium">{{ message }}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page Content Container -->
+  <main class="container my-3 flex-grow-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="mt-auto py-3" style="background-color: #0f172a; border-top: 1px solid rgba(255, 255, 255, 0.08); color: #94a3b8; font-size: 0.825rem;">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 text-center text-md-start">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-projector fs-6 text-indigo" style="color: #818cf8;"></i>
+        <span class="fw-bold text-white">ProjectorShop</span>
+        <span class="text-white-50">&bull; Enterprise &amp; Cinema Projection Systems</span>
+      </div>
+      <div class="d-flex align-items-center gap-3 text-white-50">
+        <span>&copy; 2026 ProjectorShop Inc. All rights reserved.</span>
+        <span>&bull;</span>
+        <a href="{{ url_for('auth.login') }}" class="text-white-50 text-decoration-none">
+          <i class="bi bi-shield-lock me-1"></i>Staff Portal
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const navbar = document.getElementById('mainNavbar');
+      if (navbar && navbar.classList.contains('nav-transparent')) {
+        function checkNavbarScroll() {
+          if (window.scrollY > 40) {
+            navbar.classList.add('scrolled');
+          } else {
+            navbar.classList.remove('scrolled');
+          }
+        }
+        window.addEventListener('scroll', checkNavbarScroll);
+        checkNavbarScroll();
+      }
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

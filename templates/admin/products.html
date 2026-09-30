@@ -1,0 +1,76 @@
+﻿{% extends "base.html" %}
+{% block title %}Products : Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold section-heading mb-0"><i class="bi bi-box-seam me-2"></i>Products</h2>
+  <a href="{{ url_for('admin.product_create') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-1"></i>Add New Product
+  </a>
+</div>
+
+{% if products %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Name</th>
+        <th>Brand</th>
+        <th>Category</th>
+        <th>Type</th>
+        <th>Sale Price</th>
+        <th>Rent/Day</th>
+        <th class="text-center">Stock</th>
+        <th class="text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td class="fw-semibold">{{ product.name }}</td>
+        <td>{{ product.brand }}</td>
+        <td class="small text-muted">
+          {{ categories.get(product.category_id | string, 'Unknown') }}
+        </td>
+        <td>
+          {% if product.type == 'sell' %}<span class="badge bg-success">Sale</span>
+          {% elif product.type == 'rent' %}<span class="badge bg-primary">Rent</span>
+          {% else %}<span class="badge bg-warning text-dark">Both</span>{% endif %}
+        </td>
+        <td>
+          {% if product.sale_price %}LKR {{ "{:,.0f}".format(product.sale_price) }}{% else %}:{% endif %}
+        </td>
+        <td>
+          {% if product.rent_price_per_day %}LKR {{ "{:,.0f}".format(product.rent_price_per_day) }}{% else %}:{% endif %}
+        </td>
+        <td class="text-center">
+          <span class="badge {% if product.stock_qty > 5 %}bg-success{% elif product.stock_qty > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+            {{ product.stock_qty }}
+          </span>
+        </td>
+        <td class="text-center">
+          <a href="{{ url_for('admin.product_edit', product_id=product._id | string) }}"
+             class="btn btn-sm btn-outline-secondary me-1">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="{{ url_for('admin.product_delete', product_id=product._id | string) }}"
+                class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Delete {{ product.name }}? This cannot be undone.')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-box"></i>
+  <h5>No products found.</h5>
+  <a href="{{ url_for('admin.product_create') }}" class="btn btn-primary mt-2">Add First Product</a>
+</div>
+{% endif %}
+{% endblock %}

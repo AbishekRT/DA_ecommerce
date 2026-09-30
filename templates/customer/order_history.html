@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Account History : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
+      <i class="bi bi-person-badge me-1"></i>Customer Portal
+    </span>
+    <h1 class="display-6 fw-bold mt-2 mb-0">My Account History</h1>
+  </div>
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-pill">
+    <i class="bi bi-grid me-1"></i>Browse Catalog
+  </a>
+</div>
+
+<!-- ORDERS SECTION -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+  <div class="card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
+    <h5 class="fw-bold mb-0"><i class="bi bi-bag-check-fill text-success me-2"></i>Purchased Orders</h5>
+    <span class="badge bg-light text-muted border">{{ orders | length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    {% if orders %}
+    <div class="table-responsive">
+      <table class="table table-hover table-custom mb-0">
+        <thead>
+          <tr>
+            <th>Order Ref</th>
+            <th>Booking Date</th>
+            <th>Purchased Items</th>
+            <th>Total Amount</th>
+            <th>Order Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td><code class="text-indigo fw-bold">{{ (order._id | string)[:10] }}...</code></td>
+            <td class="small text-muted">
+              {% if order.created_at %}
+                {{ order.created_at.strftime('%d %b %Y') if order.created_at.strftime is defined else order.created_at }}
+              {% else %}:{% endif %}
+            </td>
+            <td>
+              <ul class="list-unstyled mb-0 small">
+                {% for item in order['items'] %}
+                <li><i class="bi bi-box-seam text-muted me-1"></i><strong>{{ item.name }}</strong> &times; {{ item.qty }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td class="fw-bold text-success">LKR {{ "{:,.0f}".format(order.total) }}</td>
+            <td>
+              {% set s = order.status %}
+              {% if s == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
+              {% elif s == 'confirmed' %}<span class="badge bg-info text-dark">Confirmed</span>
+              {% elif s == 'completed' %}<span class="badge bg-success">Completed</span>
+              {% elif s == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+              {% else %}<span class="badge bg-secondary">{{ s | title }}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              {% if order.status == 'pending' %}
+              <form method="POST" action="{{ url_for('customer.cancel_order', order_id=order._id | string) }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                        onclick="return confirm('Cancel this order?')">
+                  <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted small">:</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state p-4">
+      <i class="bi bi-bag-x fs-2"></i>
+      <p class="text-muted mb-0">No purchase orders recorded yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- RENTALS SECTION -->
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+  <div class="card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
+    <h5 class="fw-bold mb-0"><i class="bi bi-calendar2-range-fill text-primary me-2"></i>Rental Bookings</h5>
+    <span class="badge bg-light text-muted border">{{ enriched_rentals | length }} records</span>
+  </div>
+  <div class="card-body p-0">
+    {% if enriched_rentals %}
+    <div class="table-responsive">
+      <table class="table table-hover table-custom mb-0">
+        <thead>
+          <tr>
+            <th>Booking Ref</th>
+            <th>Projector Model</th>
+            <th>Rental Period</th>
+            <th>Total Cost</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in enriched_rentals %}
+          {% set rental  = row.rental %}
+          {% set product = row.product %}
+          <tr>
+            <td><code class="text-indigo fw-bold">{{ (rental._id | string)[:10] }}...</code></td>
+            <td>
+              <div class="fw-bold">{{ product.name if product else 'Unknown Product' }}</div>
+              <small class="text-muted">{{ product.brand if product else '' }}</small>
+            </td>
+            <td>
+              <div class="small fw-semibold text-primary">
+                <i class="bi bi-calendar-event me-1"></i>{{ rental.start_date }} &rarr; {{ rental.end_date }}
+              </div>
+            </td>
+            <td class="fw-bold text-primary">LKR {{ "{:,.0f}".format(rental.total_price) }}</td>
+            <td>
+              {% set s = rental.status %}
+              {% if s == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
+              {% elif s == 'active' %}<span class="badge bg-primary">Active</span>
+              {% elif s == 'returned' %}<span class="badge bg-success">Returned</span>
+              {% elif s == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+              {% else %}<span class="badge bg-secondary">{{ s | title }}</span>{% endif %}
+            </td>
+            <td class="text-end">
+              {% if rental.status == 'pending' %}
+              <form method="POST" action="{{ url_for('customer.cancel_rental', rental_id=rental._id | string) }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                        onclick="return confirm('Cancel this rental booking?')">
+                  <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted small">:</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state p-4">
+      <i class="bi bi-calendar-x fs-2"></i>
+      <p class="text-muted mb-0">No active or past rentals found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

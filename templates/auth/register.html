@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Create Account : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 440px; margin: 2rem auto 3rem auto;">
+  <div class="auth-card">
+    <div class="text-center">
+      <div class="auth-icon-badge">
+        <i class="bi bi-person-plus-fill"></i>
+      </div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Register to buy, rent, and manage equipment.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      <!-- Full Name -->
+      <div class="mb-3">
+        <label for="name" class="auth-label">Full Name</label>
+        <div class="auth-input-group">
+          <span class="auth-input-icon"><i class="bi bi-person"></i></span>
+          <input type="text" id="name" name="name" placeholder="e.g. Alice Smith"
+                 required autofocus value="{{ request.form.get('name', '') }}" />
+        </div>
+      </div>
+
+      <!-- Email Address -->
+      <div class="mb-3">
+        <label for="email" class="auth-label">Email Address</label>
+        <div class="auth-input-group">
+          <span class="auth-input-icon"><i class="bi bi-envelope"></i></span>
+          <input type="email" id="email" name="email" placeholder="name@example.com"
+                 required value="{{ request.form.get('email', '') }}" />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="mb-3">
+        <label for="password" class="auth-label">Password</label>
+        <div class="auth-input-group">
+          <span class="auth-input-icon"><i class="bi bi-lock"></i></span>
+          <input type="password" id="password" name="password" placeholder="Min 10 characters" required />
+          <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('password', this)" title="Show / Hide Password">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+        <div class="text-muted mt-1.5 px-1" style="font-size: 0.75rem; line-height: 1.4;">
+          <i class="bi bi-shield-check text-primary me-1"></i>Must include uppercase, lowercase, number &amp; symbol.
+        </div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="mb-4">
+        <label for="confirm_password" class="auth-label">Confirm Password</label>
+        <div class="auth-input-group">
+          <span class="auth-input-icon"><i class="bi bi-shield-lock"></i></span>
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password to match" required />
+          <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('confirm_password', this)" title="Show / Hide Password">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-auth-submit">
+        <span>Complete Registration</span>
+        <i class="bi bi-arrow-right"></i>
+      </button>
+    </form>
+
+    <!-- Switch to Sign In -->
+    <div class="text-center mt-4 pt-3 border-top">
+      <p class="text-muted small mb-0">
+        Already have an account?
+        <a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold text-decoration-none">Sign in here</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.remove('bi-eye');
+    icon.classList.add('bi-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.remove('bi-eye-slash');
+    icon.classList.add('bi-eye');
+  }
+}
+</script>
+{% endblock %}

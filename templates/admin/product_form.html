@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Product : Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold section-heading mb-0">
+    <i class="bi bi-{% if product %}pencil-square{% else %}plus-circle{% endif %} me-2"></i>
+    {{ action }} Product
+  </h2>
+  <a href="{{ url_for('admin.products_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Products
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-4">
+    <form method="POST"
+          action="{{ url_for('admin.product_edit', product_id=product._id | string) if product else url_for('admin.product_create') }}"
+          novalidate>
+
+      <div class="row g-3">
+        <!-- Name -->
+        <div class="col-md-6">
+          <label class="form-label" for="name">Product Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="name" name="name" required
+                 value="{{ product.name if product else '' }}" placeholder="e.g. Epson EB-X51" />
+        </div>
+        <!-- Brand -->
+        <div class="col-md-6">
+          <label class="form-label" for="brand">Brand <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="brand" name="brand" required
+                 value="{{ product.brand if product else '' }}" placeholder="e.g. Epson" />
+        </div>
+        <!-- Category -->
+        <div class="col-md-4">
+          <label class="form-label" for="category_id">Category <span class="text-danger">*</span></label>
+          <select class="form-select" id="category_id" name="category_id" required>
+            <option value="">-- Select Category --</option>
+            {% for cat in categories %}
+            <option value="{{ cat._id | string }}"
+              {% if product and (product.category_id | string) == (cat._id | string) %}selected{% endif %}>
+              {{ cat.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Type -->
+        <div class="col-md-4">
+          <label class="form-label" for="type">Type <span class="text-danger">*</span></label>
+          <select class="form-select" id="type" name="type" required>
+            <option value="sell"  {% if product and product.type == 'sell'  %}selected{% endif %}>For Sale</option>
+            <option value="rent"  {% if product and product.type == 'rent'  %}selected{% endif %}>For Rent</option>
+            <option value="both"  {% if product and product.type == 'both'  %}selected{% endif %}>Both</option>
+          </select>
+        </div>
+        <!-- Stock -->
+        <div class="col-md-4">
+          <label class="form-label" for="stock_qty">Stock Quantity <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" id="stock_qty" name="stock_qty" min="0" required
+                 value="{{ product.stock_qty if product else '0' }}" />
+        </div>
+        <!-- Sale Price -->
+        <div class="col-md-6">
+          <label class="form-label" for="sale_price">Sale Price (LKR)</label>
+          <input type="number" class="form-control" id="sale_price" name="sale_price" step="0.01" min="0"
+                 value="{{ product.sale_price if product else '' }}" placeholder="0.00" />
+        </div>
+        <!-- Rent Price -->
+        <div class="col-md-6">
+          <label class="form-label" for="rent_price_per_day">Rent Price per Day (LKR)</label>
+          <input type="number" class="form-control" id="rent_price_per_day" name="rent_price_per_day" step="0.01" min="0"
+                 value="{{ product.rent_price_per_day if product else '' }}" placeholder="0.00" />
+        </div>
+        <!-- Image URL -->
+        <div class="col-12">
+          <label class="form-label" for="image_url">Image URL</label>
+          <input type="url" class="form-control" id="image_url" name="image_url"
+                 value="{{ product.image_url if product else '' }}" placeholder="https://example.com/image.jpg" />
+        </div>
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label" for="description">Description</label>
+          <textarea class="form-control" id="description" name="description" rows="3"
+                    placeholder="Product description...">{{ product.description if product else '' }}</textarea>
+        </div>
+
+        <!-- Specs Section -->
+        <div class="col-12">
+          <hr />
+          <h5 class="fw-semibold mb-3"><i class="bi bi-list-check me-2"></i>Specifications</h5>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="resolution">Resolution</label>
+          <input type="text" class="form-control" id="resolution" name="resolution"
+                 value="{{ product.specs.resolution if product and product.specs else '' }}"
+                 placeholder="e.g. 1920x1080" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="brightness_lumens">Brightness (lumens)</label>
+          <input type="number" class="form-control" id="brightness_lumens" name="brightness_lumens" min="0"
+                 value="{{ product.specs.brightness_lumens if product and product.specs else '' }}"
+                 placeholder="e.g. 3500" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="throw_distance">Throw Distance</label>
+          <input type="text" class="form-control" id="throw_distance" name="throw_distance"
+                 value="{{ product.specs.throw_distance if product and product.specs else '' }}"
+                 placeholder="e.g. 1.2m - 10m" />
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="connectivity">Connectivity <small class="text-muted">(comma-separated)</small></label>
+          <input type="text" class="form-control" id="connectivity" name="connectivity"
+                 value="{{ product.specs.connectivity | join(', ') if product and product.specs and product.specs.connectivity else '' }}"
+                 placeholder="e.g. HDMI, USB, Wi-Fi, Bluetooth" />
+          <div class="form-text">Enter connection types separated by commas.</div>
+        </div>
+      </div>
+
+      <hr class="mt-4" />
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{{ url_for('admin.products_list') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle me-1"></i>Cancel
+        </a>
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-save me-1"></i>{{ action }} Product
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

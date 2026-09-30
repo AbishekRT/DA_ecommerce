@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}500 : Server error : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="error-page-container">
+  <!-- Giant Watermark Number -->
+  <div class="error-watermark-number">500</div>
+  
+  <!-- Foreground Content Box -->
+  <div class="error-content-box">
+    <h1 class="error-heading">Server error</h1>
+    <p class="error-subtext">Sorry, an unexpected error occurred on the server.</p>
+    <a href="{{ url_for('customer.catalog') }}" class="btn-error-home">
+      BACK TO HOME
+    </a>
+  </div>
+</div>
+{% endblock %}

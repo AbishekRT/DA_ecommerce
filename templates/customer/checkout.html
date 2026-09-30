@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Checkout : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+    
+    <div class="text-center mb-4">
+      <div class="auth-header-icon shadow-sm text-success bg-success-subtle">
+        <i class="bi bi-shield-check"></i>
+      </div>
+      <h2 class="fw-bold mb-1">Confirm &amp; Checkout</h2>
+      <p class="text-muted small">Review your ordered hardware before final confirmation.</p>
+    </div>
+
+    <!-- Order Items Card -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+      <div class="card-header bg-white p-3 border-bottom fw-bold">
+        <i class="bi bi-receipt me-2 text-primary"></i>Order Summary
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover table-custom mb-0">
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th>Type</th>
+              <th class="text-center">Qty</th>
+              <th class="text-end">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in enriched %}
+            {% set item    = row.item %}
+            {% set product = row.product %}
+            <tr>
+              <td>
+                <div class="fw-bold">{{ product.name }}</div>
+                <small class="text-muted">{{ product.brand }}</small>
+                {% if item.type == 'rent' %}
+                <div class="small text-primary mt-1">
+                  <i class="bi bi-calendar-event me-1"></i>{{ item.rent_start_date }} &rarr; {{ item.rent_end_date }}
+                </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.type == 'sell' %}
+                  <span class="badge badge-sale">Purchase</span>
+                {% else %}
+                  <span class="badge badge-rent">Rental</span>
+                {% endif %}
+              </td>
+              <td class="text-center fw-semibold">{{ item.qty }}</td>
+              <td class="text-end fw-bold text-success">
+                {% if item.type == 'sell' %}
+                  LKR {{ "{:,.0f}".format(product.sale_price * item.qty) }}
+                {% else %}
+                  LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} <small class="text-muted">/day</small>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Simulated Gateway Notice -->
+    <div class="alert alert-info border-0 rounded-4 p-3 mb-4 d-flex align-items-center gap-3">
+      <i class="bi bi-info-circle-fill fs-4 text-primary"></i>
+      <div class="small">
+        <strong>Academic Demonstration Sandbox:</strong> This checkout process simulates instant order booking and atomic stock reduction in MongoDB.
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <form method="POST" action="{{ url_for('customer.checkout') }}">
+      <div class="d-grid mb-3">
+        <button type="submit" class="btn btn-success btn-lg rounded-pill py-3 fw-bold shadow-sm">
+          <i class="bi bi-check-circle-fill me-2"></i>Confirm Order &amp; Reserve Items
+        </button>
+      </div>
+    </form>
+
+    <div class="text-center">
+      <a href="{{ url_for('customer.view_cart') }}" class="btn btn-link text-muted text-decoration-none small">
+        <i class="bi bi-arrow-left me-1"></i>Return to Shopping Cart
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

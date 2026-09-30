@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+ENV/
+
+# Environment Variables & Secrets
+.env
+
+# Deployment & Remote Administration Scripts with server credentials
+audit_*.txt
+audit_vps.sh
+deploy_*.py
+fix_*.py
+run_vps_*.py
+sync_*.py
+
+# Operating System Files
+.DS_Store
+Thumbs.db

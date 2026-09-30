@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Projector Catalog : ProjectorShop{% endblock %}
+
+{% block hero %}
+<!-- Magcubic Halloween Season Hero Banner -->
+<div class="hero-banner-container position-relative">
+  <!-- Main Banner Image -->
+  <img src="{{ url_for('static', filename='images/hero_banner.webp') }}?v=magcubic" alt="Projector Special Season Banner" class="hero-banner-img" />
+
+  <!-- Left & Right Carousel Arrows -->
+  <button type="button" class="hero-arrow-btn prev-btn" aria-label="Previous Slide" onclick="alert('Viewing Featured Collection')">
+    <i class="bi bi-chevron-left"></i>
+  </button>
+  <button type="button" class="hero-arrow-btn next-btn" aria-label="Next Slide" onclick="alert('Viewing Next Collection')">
+    <i class="bi bi-chevron-right"></i>
+  </button>
+
+  <!-- Bottom Indicator Bars -->
+  <div class="hero-slide-indicators">
+    <div class="hero-slide-bar"></div>
+    <div class="hero-slide-bar active"></div>
+    <div class="hero-slide-bar"></div>
+    <div class="hero-slide-bar"></div>
+    <div class="hero-slide-bar"></div>
+  </div>
+
+  <!-- Bottom Left Floating Chat Bubble -->
+  <div class="floating-chat-pill" onclick="alert('Customer Support: How can we help you select the ideal projector today?')">
+    <i class="bi bi-chat-dots-fill text-dark"></i>
+    <span>Chat with us 👋</span>
+  </div>
+
+  <!-- Right Side Floating Reviews Badge -->
+  <div class="floating-reviews-badge">
+    <span>★ Our Reviews</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Modern Filter Toolbar -->
+<div class="card p-3 mb-4 border rounded-3 bg-white shadow-sm">
+  <form method="GET" action="{{ url_for('customer.catalog') }}" class="row g-2 align-items-center">
+    <!-- Category Filter -->
+    <div class="col-md-5">
+      <label class="form-label fw-bold text-uppercase text-muted mb-1" style="font-size: 0.72rem;">
+        <i class="bi bi-tags me-1 text-primary"></i>Category
+      </label>
+      <select name="category" class="form-select form-select-sm rounded-2 shadow-none border" onchange="this.form.submit()">
+        <option value="">All Categories ({{ categories | length }})</option>
+        {% for cat in categories %}
+        <option value="{{ cat._id | string }}" {% if selected_cat == (cat._id | string) %}selected{% endif %}>
+          {{ cat.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Type Pills -->
+    <div class="col-md-5">
+      <label class="form-label fw-bold text-uppercase text-muted mb-1" style="font-size: 0.72rem;">
+        <i class="bi bi-funnel me-1 text-primary"></i>Availability
+      </label>
+      <div class="d-flex flex-wrap gap-1">
+        {% for t in [('', 'All'), ('sell', 'For Sale'), ('rent', 'For Rent'), ('both', 'Hybrid')] %}
+        <label class="btn btn-sm rounded-pill px-2.5 py-0.5 fw-semibold {% if selected_type == t[0] or (not selected_type and t[0] == '') %}btn-dark text-white shadow-sm{% else %}btn-outline-secondary bg-light text-dark border-0{% endif %}" style="font-size: 0.8rem; cursor: pointer;">
+          <input type="radio" name="type" value="{{ t[0] }}" class="d-none" onchange="this.form.submit()"
+                 {% if selected_type == t[0] or (not selected_type and t[0] == '') %}checked{% endif %} />
+          {{ t[1] }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Reset Action -->
+    <div class="col-md-2 text-md-end mt-3 mt-md-4">
+      <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-2 w-100 btn-sm py-1">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Filters
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Floating Compare Dock -->
+<div id="compareBar" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-2.5 px-4 rounded-pill shadow-lg d-flex align-items-center gap-3 text-white"
+     style="display:none !important; background-color: #0f172a; border: 1px solid rgba(255, 255, 255, 0.2); z-index: 1050;">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-arrow-left-right text-warning fs-5"></i>
+    <span class="fw-semibold small"><span id="compareCount" class="badge bg-primary rounded-pill px-2 py-0.5">0</span> items selected</span>
+  </div>
+  <button class="btn btn-sm btn-warning text-dark rounded-pill px-3 py-1 fw-bold" onclick="goCompare()">
+    <span>Compare Now</span>
+    <i class="bi bi-arrow-right ms-1"></i>
+  </button>
+</div>
+
+<!-- Retail Products Grid (Matched to Reference Layout) -->
+{% if products %}
+<div class="row g-3">
+  {% for product in products %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    
+    <!-- Clickable Retail Card -->
+    <div class="retail-card"
+         onclick="window.location.href='{{ url_for('customer.product_detail', product_id=product._id | string) }}'">
+      
+      <!-- Top Red / Blue Tag Badge -->
+      {% if product.type == 'sell' %}
+        <span class="retail-badge-save">FOR SALE</span>
+      {% elif product.type == 'rent' %}
+        <span class="retail-badge-rent">FOR RENT</span>
+      {% else %}
+        <span class="retail-badge-save">SALE &amp; RENT</span>
+      {% endif %}
+
+      <!-- Top Right Compare Checkbox -->
+      <div class="retail-compare-corner" onclick="event.stopPropagation()">
+        <div class="form-check mb-0">
+          <input class="form-check-input compare-checkbox" type="checkbox"
+                 value="{{ product._id | string }}"
+                 id="cmp_{{ product._id | string }}"
+                 onchange="updateCompareBar()" />
+          <label class="form-check-label text-muted fw-semibold" for="cmp_{{ product._id | string }}" style="font-size: 0.7rem;">Compare</label>
+        </div>
+      </div>
+
+      <!-- Centered Isolated Product Image -->
+      <div class="retail-img-container">
+        {% if product.image_url %}
+          <img src="{{ product.image_url }}?v=2026_retail" alt="{{ product.name }}" loading="lazy" />
+        {% else %}
+          <div class="text-center text-muted">
+            <i class="bi bi-projector fs-1 text-secondary"></i>
+            <div class="small">No Image</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Card Body Content -->
+      <div class="retail-card-body">
+        <!-- Title with Key Specs -->
+        <div class="retail-product-title" title="{{ product.name }}">
+          <strong>{{ product.brand }}</strong> {{ product.name }}
+          {% if product.specs and product.specs.resolution %}
+            : {{ product.specs.resolution.split('(')[0] }}
+          {% endif %}
+          {% if product.specs and product.specs.brightness_lumens %}
+            , {{ product.specs.brightness_lumens }} Lumens
+          {% endif %}
+        </div>
+
+        <!-- Pricing Section -->
+        <div class="retail-price-row">
+          {% if product.type in ['sell', 'both'] %}
+            <span class="retail-price-main">LKR {{ "{:,.0f}".format(product.sale_price) }}</span>
+            <span class="retail-price-strike">LKR {{ "{:,.0f}".format(product.sale_price * 1.15) }}</span>
+          {% endif %}
+          {% if product.type in ['rent', 'both'] %}
+            <div class="retail-rent-text">
+              <i class="bi bi-calendar-event me-1"></i>Rent: LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} / day
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Full-Width Vibrant Gold ADD TO CART Button -->
+        <button type="button" class="btn-retail-cart">
+          <i class="bi bi-cart-plus me-1"></i>ADD TO CART
+        </button>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card p-5 text-center my-4 border bg-white shadow-sm">
+  <i class="bi bi-search fs-2 text-muted mb-2"></i>
+  <h5 class="fw-bold">No Products Found</h5>
+  <p class="text-muted small">No items matched your filter criteria.</p>
+  <div>
+    <a href="{{ url_for('customer.catalog') }}" class="btn btn-dark btn-sm px-3">
+      Clear All Filters
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function updateCompareBar() {
+    const checked = document.querySelectorAll('.compare-checkbox:checked');
+    const bar = document.getElementById('compareBar');
+    const countEl = document.getElementById('compareCount');
+    
+    if (checked.length > 2) {
+      alert("You can compare a maximum of 2 projectors at once.");
+      event.target.checked = false;
+      return;
+    }
+    
+    countEl.textContent = checked.length;
+    if (checked.length > 0) {
+      bar.style.removeProperty('display');
+      bar.style.display = 'flex';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  function goCompare() {
+    const checked = document.querySelectorAll('.compare-checkbox:checked');
+    if (checked.length < 2) {
+      alert("Please select 2 products to compare.");
+      return;
+    }
+    const ids = Array.from(checked).map(c => c.value);
+    window.location.href = "{{ url_for('customer.compare') }}?ids=" + ids[0] + "&ids=" + ids[1];
+  }
+</script>
+{% endblock %}

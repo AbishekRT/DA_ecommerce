@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Order Confirmed : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+  <div class="col-md-7 col-lg-6 text-center">
+    <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5 bg-white">
+      <div class="mb-3">
+        <div class="auth-header-icon bg-success-subtle text-success mx-auto" style="width: 72px; height: 72px; font-size: 2rem; border-radius: 50%;">
+          <i class="bi bi-check-lg"></i>
+        </div>
+      </div>
+      <h2 class="fw-bold mb-2">Order Confirmed!</h2>
+      <p class="text-muted mb-4">
+        Thank you for choosing ProjectorShop. Your hardware booking has been written to MongoDB and inventory updated.
+      </p>
+
+      {% if order_id and order_id != 'none' %}
+      <div class="bg-light border rounded-4 p-3 mb-4 text-start">
+        <div class="small text-muted text-uppercase fw-bold mb-1">Generated MongoDB Order Reference:</div>
+        <code class="fs-6 fw-bold text-indigo text-break">{{ order_id | string }}</code>
+      </div>
+      {% endif %}
+
+      <div class="d-flex flex-column gap-2">
+        <a href="{{ url_for('customer.order_history') }}" class="btn btn-primary btn-lg rounded-pill fw-bold">
+          <i class="bi bi-clock-history me-1"></i>View in Order History
+        </a>
+        <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-pill">
+          <i class="bi bi-grid me-1"></i>Explore More Equipment
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

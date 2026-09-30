@@ -1,0 +1,844 @@
+/* ==========================================================================
+   ProjectorShop - Modern Retail E-Commerce Stylesheet (Matched to Reference)
+   ========================================================================== */
+
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --dark-bg: #0f172a;
+  --body-bg: #fdfdfd;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --accent-red: #e11d48;
+  --accent-yellow: #f59e0b;
+  --accent-yellow-hover: #d97706;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--body-bg);
+  color: var(--text-main);
+  font-size: 0.875rem;
+}
+
+/* --------------------------------------------------------------------------
+   Retail Product Card (Matched to Reference Image)
+   -------------------------------------------------------------------------- */
+.retail-card {
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.retail-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  border-color: #e5e7eb;
+}
+
+/* Red Tag Badge */
+.retail-badge-save {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.retail-badge-rent {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+  z-index: 5;
+}
+
+/* Image Container */
+.retail-img-container {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background-color: #ffffff;
+  position: relative;
+}
+
+.retail-img-container img {
+  max-height: 170px;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.retail-card:hover .retail-img-container img {
+  transform: scale(1.05);
+}
+
+/* Content */
+.retail-card-body {
+  padding: 0.75rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.retail-product-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1f2937;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+  height: 2.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.retail-price-row {
+  margin-top: auto;
+  margin-bottom: 0.75rem;
+}
+
+.retail-price-main {
+  color: #ef4444;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.retail-price-strike {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  text-decoration: line-through;
+  margin-left: 0.35rem;
+  font-weight: 400;
+}
+
+.retail-rent-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-top: 0.15rem;
+}
+
+/* Vibrant Yellow ADD TO CART Button */
+.btn-retail-cart {
+  background-color: #f59e0b;
+  color: #000000;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.75px;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 4px;
+  padding: 0.65rem 1rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-retail-cart:hover {
+  background-color: #d97706;
+  color: #000000;
+  transform: translateY(-1px);
+}
+
+/* Compare Checkbox on Card */
+.retail-compare-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* --------------------------------------------------------------------------
+   Spacious Modern Empty State Container
+   -------------------------------------------------------------------------- */
+.empty-state {
+  background: #ffffff !important;
+  border: 1px dashed #cbd5e1 !important;
+  border-radius: 16px !important;
+  padding: 4rem 2rem !important;
+  text-align: center;
+  max-width: 640px;
+  margin: 3rem auto !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+.empty-state-icon {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 1.5rem auto;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.75rem;
+}
+
+.empty-state h3, .empty-state h4 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  font-size: 0.925rem;
+  color: #64748b;
+  max-width: 440px;
+  margin: 0 auto 1.75rem auto;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Product Details Page Enhancements
+   -------------------------------------------------------------------------- */
+.detail-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.detail-img-wrapper {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 10px;
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.detail-img-wrapper img {
+  max-height: 280px;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform 0.25s ease;
+}
+
+.detail-img-wrapper:hover img {
+  transform: scale(1.04);
+}
+
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  height: 40px;
+}
+
+.qty-stepper button {
+  background: #f8fafc;
+  border: none;
+  width: 38px;
+  height: 100%;
+  color: #334155;
+  font-weight: bold;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.qty-stepper button:hover {
+  background: #e2e8f0;
+}
+
+.qty-stepper input {
+  border: none;
+  text-align: center;
+  font-weight: 700;
+  width: 46px;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.qty-stepper input:focus {
+  outline: none;
+}
+
+/* --------------------------------------------------------------------------
+   Modern Authentication Pages (Sign In & Sign Up)
+   -------------------------------------------------------------------------- */
+.auth-container {
+  max-width: 440px;
+  margin: 2rem auto 3rem auto;
+  padding: 0 0.75rem;
+}
+
+.auth-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  padding: 2.25rem 2rem;
+}
+
+.auth-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  margin: 0 auto 1.25rem auto;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+}
+
+.auth-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.25px;
+}
+
+.auth-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.45;
+  margin-bottom: 1.5rem;
+}
+
+.auth-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.auth-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
+  height: 44px;
+}
+
+.auth-input-group:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.auth-input-group .auth-input-icon {
+  color: #94a3b8;
+  padding: 0 0.75rem 0 0.875rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-group input {
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  font-size: 0.875rem;
+  color: #0f172a;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-input-group input:focus {
+  outline: none;
+}
+
+.auth-input-group .toggle-pw-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0 0.875rem;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease;
+}
+
+.auth-input-group .toggle-pw-btn:hover {
+  color: #334155;
+}
+
+.btn-auth-submit {
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  height: 44px;
+  border-radius: 8px;
+  border: none;
+  width: 100%;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-auth-submit:hover {
+  background: linear-gradient(135deg, #4338ca, #3730a3);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.auth-quick-accounts {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 1.25rem;
+  font-size: 0.775rem;
+}
+
+/* --------------------------------------------------------------------------
+   Magcubic E-Commerce Header, Hero Banner & Retail Styling
+   -------------------------------------------------------------------------- */
+.top-promo-bar {
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 0.75rem;
+  padding: 0.4rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.magcubic-nav {
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1040;
+}
+
+.magcubic-nav.nav-transparent {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+.magcubic-nav.nav-transparent.scrolled {
+  background-color: rgba(15, 23, 42, 0.96) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+.magcubic-nav.nav-solid {
+  background-color: #0f172a !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.magcubic-brand {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff !important;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.magcubic-nav .nav-link {
+  color: #ffffff !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.85rem !important;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.magcubic-nav .nav-link:hover,
+.magcubic-nav .nav-link.active {
+  color: #ffffff !important;
+  font-weight: 700;
+  opacity: 1;
+}
+
+
+.lang-curr-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.hero-banner-container {
+  position: relative;
+  width: 100%;
+  background: #000000;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.hero-banner-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hero-arrow-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.hero-arrow-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.hero-arrow-btn.prev-btn {
+  left: 24px;
+}
+
+.hero-arrow-btn.next-btn {
+  right: 24px;
+}
+
+.hero-slide-indicators {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.hero-slide-bar {
+  width: 32px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hero-slide-bar.active {
+  background: #ffffff;
+  width: 48px;
+}
+
+.floating-chat-pill {
+  position: absolute;
+  bottom: 22px;
+  left: 24px;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 30px;
+  padding: 0.45rem 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 10;
+  cursor: pointer;
+}
+
+.floating-reviews-badge {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: right bottom;
+  background: #000000;
+  color: #ffffff;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom: none;
+  z-index: 10;
+}
+
+/* --------------------------------------------------------------------------
+   Elevated KPI Metric Cards (Industrial Standard)
+   -------------------------------------------------------------------------- */
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.kpi-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+/* Soft-tinted icon backgrounds */
+.kpi-icon-indigo {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.kpi-icon-emerald {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.kpi-icon-amber {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.kpi-icon-cyan {
+  background-color: #cffafe;
+  color: #0e7490;
+}
+
+/* Trend Badges */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  margin-top: 0.5rem;
+}
+
+.trend-badge-up {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.trend-badge-neutral {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.trend-badge-info {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* Subtle Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.status-pill-completed {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.status-pill-active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.status-pill-reserved {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-pill-pending {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+.status-pill-returned {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-pill-cancelled {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* --------------------------------------------------------------------------
+   Minimalist Modern Error Pages (Matched to Reference Image)
+   -------------------------------------------------------------------------- */
+.error-page-container {
+  min-height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.error-watermark-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(8rem, 20vw, 16rem);
+  font-weight: 900;
+  color: #f1f5f9;
+  letter-spacing: -5px;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.error-content-box {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.error-heading {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.65rem;
+}
+
+.error-subtext {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.btn-error-home {
+  background-color: #000000;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 0px;
+  padding: 0.85rem 2.5rem;
+  border: none;
+  display: inline-block;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-error-home:hover {
+  background-color: #1f2937;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+
+
+
+

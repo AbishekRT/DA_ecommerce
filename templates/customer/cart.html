@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Your Cart : ProjectorShop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
+      <i class="bi bi-cart3 me-1"></i>Order Review
+    </span>
+    <h1 class="display-6 fw-bold mt-2 mb-0">Shopping Cart</h1>
+  </div>
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-pill">
+    <i class="bi bi-arrow-left"></i>Continue Browsing
+  </a>
+</div>
+
+{% if enriched_items %}
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table table-hover table-custom mb-0">
+      <thead>
+        <tr>
+          <th style="width: 90px;">Item</th>
+          <th>Product Details</th>
+          <th>Order Type</th>
+          <th>Quantity</th>
+          <th>Dates / Duration</th>
+          <th>Rate</th>
+          <th class="text-end">Subtotal</th>
+          <th style="width: 50px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in enriched_items %}
+        {% set product = row.product %}
+        {% set item    = row.item %}
+        <tr>
+          <td>
+            {% if product.image_url %}
+            <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                 class="rounded-3 shadow-sm border bg-white"
+                 style="width: 70px; height: 55px; object-fit: contain; padding: 3px;" />
+            {% else %}
+            <div class="bg-light rounded-3 d-flex align-items-center justify-content-center border"
+                 style="width: 70px; height: 55px;">
+              <i class="bi bi-projector text-muted"></i>
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            <div class="fw-bold">{{ product.name }}</div>
+            <small class="text-muted">{{ product.brand }}</small>
+          </td>
+          <td>
+            {% if item.type == 'sell' %}
+              <span class="badge badge-sale">Purchase</span>
+            {% else %}
+              <span class="badge badge-rent">Rental</span>
+            {% endif %}
+          </td>
+          <td class="fw-semibold">{{ item.qty }}</td>
+          <td>
+            {% if item.type == 'rent' %}
+              <div class="small fw-semibold text-primary"><i class="bi bi-calendar-range me-1"></i>{{ item.rent_start_date }} to {{ item.rent_end_date }}</div>
+              <span class="badge bg-light text-muted border small">{{ row.days }} days</span>
+            {% else %}
+              <span class="text-muted">:</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.type == 'sell' %}
+              LKR {{ "{:,.0f}".format(product.sale_price) }}
+            {% else %}
+              LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} <small class="text-muted">/day</small>
+            {% endif %}
+          </td>
+          <td class="text-end fw-bold text-success fs-6">
+            LKR {{ "{:,.0f}".format(row.subtotal) }}
+          </td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('customer.remove_from_cart') }}">
+              <input type="hidden" name="product_id" value="{{ product._id | string }}" />
+              <input type="hidden" name="type" value="{{ item.type }}" />
+              <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle"
+                      title="Remove item" onclick="return confirm('Remove this item from your cart?')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="bg-light">
+          <td colspan="6" class="text-end fw-bold fs-5 py-3">Estimated Order Total:</td>
+          <td class="text-end fs-4 fw-bold text-success py-3">LKR {{ "{:,.0f}".format(cart_total) }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center">
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-secondary rounded-pill px-4">
+    <i class="bi bi-arrow-left me-1"></i>Add More Items
+  </a>
+  <a href="{{ url_for('customer.checkout') }}" class="btn btn-success btn-lg rounded-pill px-5 shadow-sm fw-bold">
+    <i class="bi bi-lock-fill me-1"></i>Proceed to Checkout
+  </a>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">
+    <i class="bi bi-cart-x"></i>
+  </div>
+  <h4>Your Cart is Currently Empty</h4>
+  <p>Explore our catalog of 4K cinema projectors, ultra-short throw lasers, and commercial venue visual gear.</p>
+  <a href="{{ url_for('customer.catalog') }}" class="btn btn-primary rounded-pill px-4 py-2 fw-semibold">
+    <i class="bi bi-grid-fill me-1.5"></i>Browse Projectors
+  </a>
+</div>
+{% endif %}
+{% endblock %}
