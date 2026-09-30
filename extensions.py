@@ -1,4 +1,4 @@
-﻿"""
+"""
 extensions.py
 Centralised setup for MongoClient and Flask-Login.
 Imported by app.py and all route blueprints.
@@ -8,10 +8,21 @@ from pymongo import MongoClient
 from flask_login import LoginManager
 import os
 
+try:
+    import certifi
+    ca = certifi.where()
+except Exception:
+    ca = None
+
 # ---------------------------------------------------------------------------
-# MongoDB connection
+# MongoDB connection (Local, VPS, and Cloud Atlas Support)
 # ---------------------------------------------------------------------------
-client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/"))
+mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+if "mongodb+srv://" in mongo_uri and ca:
+    client = MongoClient(mongo_uri, tlsCAFile=ca)
+else:
+    client = MongoClient(mongo_uri)
+
 db = client[os.getenv("DATABASE_NAME", "projector_ecommerce")]
 
 # Convenience handles — imported wherever a collection is needed
