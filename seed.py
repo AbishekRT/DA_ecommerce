@@ -245,6 +245,20 @@ def seed_products(cat_ids):
     c_home, c_biz, c_4k, c_ust, c_outdoor, c_game, c_laser, c_pico, c_edu, c_ceil, c_screen, c_mount, c_wifi, c_audio, c_lamp = cat_ids
     now = datetime.now(timezone.utc)
 
+    real_images = [
+        "/static/images/products/03_fe08a650-da17-4def-9ccf-70a64b25ee7f.webp",
+        "/static/images/products/1_1_2bdf3d70-f93d-4845-99f6-a827185f250e.webp",
+        "/static/images/products/1_2540cf6e-1822-4368-b1f6-7eb5f3da4e16.webp",
+        "/static/images/products/20260509104552.webp",
+        "/static/images/products/3034a1133efe01daba919094b70c6310.webp",
+        "/static/images/products/489651320.webp",
+        "/static/images/products/b8421501ceee8ed8defa49d79fc692df.webp",
+        "/static/images/products/S2f98a53d4fa749ee94613590a788b641u.webp",
+        "/static/images/products/S2fb390a462704106ab1184a568a9195b5_256a857e-79e2-4907-b2b0-03ea051fcebf.webp",
+        "/static/images/products/S49e23f3ef07c48478e72fa336f1097daY.webp",
+        "/static/images/products/Sbb001356f372499f8252b51a936aed97G.webp",
+    ]
+
     products = [
         # 1. Home Cinema
         {
@@ -255,7 +269,7 @@ def seed_products(cat_ids):
             "sale_price": 389900.00,
             "rent_price_per_day": 13500.00,
             "stock_qty": 8,
-            "image_url": "/static/images/products/epson_hc2350.jpg",
+            "image_url": real_images[0],
             "description": "Full HD 3LCD smart home cinema projector with 4500 lumens. Ideal for dedicated home theatre rooms and bright living spaces.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -274,7 +288,7 @@ def seed_products(cat_ids):
             "sale_price": 509900.00,
             "rent_price_per_day": None,
             "stock_qty": 5,
-            "image_url": "/static/images/products/benq_ht3550i.jpg",
+            "image_url": real_images[1],
             "description": "True 4K HDR DLP home projector with factory-calibrated DCI-P3 wide color gamut and integrated Android TV.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -293,7 +307,7 @@ def seed_products(cat_ids):
             "sale_price": None,
             "rent_price_per_day": 36000.00,
             "stock_qty": 3,
-            "image_url": "/static/images/products/sony_vpl.jpg",
+            "image_url": real_images[2],
             "description": "Ultra-high-end Sony native 4K SXRD cinema projector powered by the X1 processor for unrivaled HDR mastering. Rental exclusive.",
             "specs": {
                 "resolution": "4096x2160 (Native 4K)",
@@ -312,7 +326,7 @@ def seed_products(cat_ids):
             "sale_price": 179900.00,
             "rent_price_per_day": 6000.00,
             "stock_qty": 12,
-            "image_url": "/static/images/products/nebula_capsule.jpg",
+            "image_url": real_images[3],
             "description": "Pocket-sized laser mini projector the size of a soda can. Built-in battery, autofocus, and Google TV onboard.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -331,7 +345,7 @@ def seed_products(cat_ids):
             "sale_price": 269900.00,
             "rent_price_per_day": 9000.00,
             "stock_qty": 9,
-            "image_url": "/static/images/products/optoma_ml1080.jpg",
+            "image_url": real_images[4],
             "description": "Ultra-compact RGB triple laser projector weighing just 0.9 kg with short-throw lens and USB-C power delivery.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -350,7 +364,7 @@ def seed_products(cat_ids):
             "sale_price": None,
             "rent_price_per_day": 5400.00,
             "stock_qty": 15,
-            "image_url": "/static/images/products/epson_ebw52.jpg",
+            "image_url": real_images[5],
             "description": "Workhorse WXGA business presentation projector with 4000 lumens output. Perfect for corporate workshops and classrooms.",
             "specs": {
                 "resolution": "1280x800 (WXGA)",
@@ -369,7 +383,7 @@ def seed_products(cat_ids):
             "sale_price": 899900.00,
             "rent_price_per_day": 28000.00,
             "stock_qty": 4,
-            "image_url": "/static/images/products/lg_cinebeam.jpg",
+            "image_url": real_images[6],
             "description": "Flagship 4K UHD triple laser ultra-short throw projector delivering a 120-inch frame from only 7.2 inches away.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -388,7 +402,7 @@ def seed_products(cat_ids):
             "sale_price": 949900.00,
             "rent_price_per_day": None,
             "stock_qty": 4,
-            "image_url": "/static/images/products/hisense_px1.jpg",
+            "image_url": real_images[7],
             "description": "Triple-laser ALPD 4.0 ultra-short throw projector with Dolby Vision and Bowers & Wilkins acoustics tuned to perfection.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -407,7 +421,7 @@ def seed_products(cat_ids):
             "sale_price": 1399900.00,
             "rent_price_per_day": 45000.00,
             "stock_qty": 3,
-            "image_url": "/static/images/products/samsung_lsp9t.jpg",
+            "image_url": real_images[8],
             "description": "The world's first HDR10+ certified triple laser projector with 40W 4.2ch built-in Acoustic Beam sound system.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -426,7 +440,7 @@ def seed_products(cat_ids):
             "sale_price": 469900.00,
             "rent_price_per_day": 14000.00,
             "stock_qty": 7,
-            "image_url": "/static/images/products/benq_w4000i.jpg",
+            "image_url": real_images[9],
             "description": "Ultra-low 16ms 4K/60Hz and 4ms 1080p/240Hz input lag gaming projector with tailored Game Sound and FPS presets.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -445,7 +459,7 @@ def seed_products(cat_ids):
             "sale_price": 319900.00,
             "rent_price_per_day": None,
             "stock_qty": 11,
-            "image_url": "/static/images/products/optoma_uhd50x.jpg",
+            "image_url": real_images[10],
             "description": "3200 ANSI Lumens 4K gaming powerhouse with 4.2ms ultra-fast response and 240Hz refresh rate.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -464,7 +478,7 @@ def seed_products(cat_ids):
             "sale_price": None,
             "rent_price_per_day": 85000.00,
             "stock_qty": 2,
-            "image_url": "/static/images/products/christie_hd20k.jpg",
+            "image_url": real_images[0],
             "description": "31,500 ISO lumen 3DLP laser phosphor projector engineered for concert tours, stadium mapping, and massive open-air screenings.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -483,7 +497,7 @@ def seed_products(cat_ids):
             "sale_price": None,
             "rent_price_per_day": 105000.00,
             "stock_qty": 2,
-            "image_url": "/static/images/products/barco_dp2k.jpg",
+            "image_url": real_images[1],
             "description": "DCI-compliant digital commercial cinema projector with integrated Alchemy server. The standard for film festivals and outdoor premieres.",
             "specs": {
                 "resolution": "2048x1080 (2K Cinema)",
@@ -502,7 +516,7 @@ def seed_products(cat_ids):
             "sale_price": 729900.00,
             "rent_price_per_day": 33000.00,
             "stock_qty": 6,
-            "image_url": "/static/images/products/optoma_zh606.jpg",
+            "image_url": real_images[2],
             "description": "6,000 lumen compact DuraCore laser projector engineered for 24/7 maintenance-free continuous operation.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -521,7 +535,7 @@ def seed_products(cat_ids):
             "sale_price": 289900.00,
             "rent_price_per_day": None,
             "stock_qty": 14,
-            "image_url": "/static/images/products/epson_ebw52.jpg",
+            "image_url": real_images[3],
             "description": "Full HD 1080p dynamic wireless projector with 4000 lumens of equal color and white brightness.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -540,7 +554,7 @@ def seed_products(cat_ids):
             "sale_price": 1499900.00,
             "rent_price_per_day": 19000.00,
             "stock_qty": 2,
-            "image_url": "/static/images/products/epson_ls12000b.jpg",
+            "image_url": real_images[4],
             "description": "Epson flagship 4K 120Hz laser projector with 2700 lumens, motorized optics, and advanced HDR10+ frame interpolation.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -559,7 +573,7 @@ def seed_products(cat_ids):
             "sale_price": 539900.00,
             "rent_price_per_day": 18000.00,
             "stock_qty": 5,
-            "image_url": "/static/images/products/viewsonic_x100.jpg",
+            "image_url": real_images[5],
             "description": "4K 2nd generation LED projector with built-in Harman Kardon acoustics, ultra-quiet cooling, and wide lens shift.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -578,7 +592,7 @@ def seed_products(cat_ids):
             "sale_price": 1179900.00,
             "rent_price_per_day": 15000.00,
             "stock_qty": 6,
-            "image_url": "/static/images/products/xgimi_horizon.jpg",
+            "image_url": real_images[6],
             "description": "The world's first 4K long-throw projector with Dolby Vision combining Laser and LED Dual Light technology.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -597,7 +611,7 @@ def seed_products(cat_ids):
             "sale_price": 249900.00,
             "rent_price_per_day": None,
             "stock_qty": 8,
-            "image_url": "/static/images/products/epson_ls500.jpg",
+            "image_url": real_images[7],
             "description": "Edge Free 120-inch 16:9 ambient light rejecting fixed frame screen designed specifically for 4K/8K projectors.",
             "specs": {
                 "screen_size": "120 inch diagonal",
@@ -616,7 +630,7 @@ def seed_products(cat_ids):
             "sale_price": 65900.00,
             "rent_price_per_day": 3500.00,
             "stock_qty": 20,
-            "image_url": "/static/images/products/barco_dp2k.jpg",
+            "image_url": real_images[8],
             "description": "Engineered micro-adjustable ceiling bracket system with integrated cable management and Centris technology.",
             "specs": {
                 "max_weight_capacity": "22.7 kg",
