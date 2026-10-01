@@ -65,7 +65,16 @@ def catalog():
     # Direct PyMongo find — returns a cursor of product documents
     products = list(products_col.find(query))
 
-    # Fetch all categories for the filter dropdown
+    # Sort handling
+    sort_by = request.args.get("sort", "featured")
+    if sort_by == "price_low":
+        products = sorted(products, key=lambda p: (p.get("sale_price") or p.get("rent_price_per_day") or 0))
+    elif sort_by == "price_high":
+        products = sorted(products, key=lambda p: (p.get("sale_price") or p.get("rent_price_per_day") or 0), reverse=True)
+    elif sort_by == "name_asc":
+        products = sorted(products, key=lambda p: p.get("name", "").lower())
+
+    # Fetch all categories for the filter pills
     categories = list(categories_col.find())
 
     return render_template(
@@ -74,6 +83,7 @@ def catalog():
         categories=categories,
         selected_cat=cat_id,
         selected_type=type_filter,
+        selected_sort=sort_by,
     )
 
 

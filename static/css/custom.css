@@ -968,6 +968,135 @@ body {
   transform: translateY(-1px);
 }
 
+/* --------------------------------------------------------------------------
+   Premium Category Pills & Horizontal Scroll Track
+   -------------------------------------------------------------------------- */
+.category-scroll-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.category-scroll-track {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0.25rem 0.75rem 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.category-scroll-track::-webkit-scrollbar {
+  height: 4px;
+}
+
+.category-scroll-track::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.category-scroll-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  user-select: none;
+}
+
+.category-pill:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.category-pill.active {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   Secondary Toolbar & Segmented Availability Filter
+   -------------------------------------------------------------------------- */
+.catalog-secondary-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.75rem;
+}
+
+.type-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+}
+
+.type-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  color: #64748b;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.type-segment-btn:hover {
+  color: #0f172a;
+}
+
+.type-segment-btn.active {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Seamless AJAX Transition
+   -------------------------------------------------------------------------- */
+#catalog-content-container {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+#catalog-content-container.is-loading {
+  opacity: 0.55;
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+
 
 
 
