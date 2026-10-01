@@ -388,7 +388,7 @@ def seed_products(cat_ids):
             "sale_price": 949900.00,
             "rent_price_per_day": None,
             "stock_qty": 4,
-            "image_url": "/static/images/products/formovie_theater.jpg",
+            "image_url": "/static/images/products/hisense_px1.jpg",
             "description": "Triple-laser ALPD 4.0 ultra-short throw projector with Dolby Vision and Bowers & Wilkins acoustics tuned to perfection.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -407,7 +407,7 @@ def seed_products(cat_ids):
             "sale_price": 1399900.00,
             "rent_price_per_day": 45000.00,
             "stock_qty": 3,
-            "image_url": "/static/images/products/samsung_premiere.jpg",
+            "image_url": "/static/images/products/samsung_lsp9t.jpg",
             "description": "The world's first HDR10+ certified triple laser projector with 40W 4.2ch built-in Acoustic Beam sound system.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -426,7 +426,7 @@ def seed_products(cat_ids):
             "sale_price": 469900.00,
             "rent_price_per_day": 14000.00,
             "stock_qty": 7,
-            "image_url": "/static/images/products/benq_tk700sti.jpg",
+            "image_url": "/static/images/products/benq_w4000i.jpg",
             "description": "Ultra-low 16ms 4K/60Hz and 4ms 1080p/240Hz input lag gaming projector with tailored Game Sound and FPS presets.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -445,7 +445,7 @@ def seed_products(cat_ids):
             "sale_price": 319900.00,
             "rent_price_per_day": None,
             "stock_qty": 11,
-            "image_url": "/static/images/products/viewsonic_px701.jpg",
+            "image_url": "/static/images/products/optoma_uhd50x.jpg",
             "description": "3200 ANSI Lumens 4K gaming powerhouse with 4.2ms ultra-fast response and 240Hz refresh rate.",
             "specs": {
                 "resolution": "3840x2160 (4K UHD)",
@@ -464,7 +464,7 @@ def seed_products(cat_ids):
             "sale_price": None,
             "rent_price_per_day": 85000.00,
             "stock_qty": 2,
-            "image_url": "/static/images/products/christie_crimson.jpg",
+            "image_url": "/static/images/products/christie_hd20k.jpg",
             "description": "31,500 ISO lumen 3DLP laser phosphor projector engineered for concert tours, stadium mapping, and massive open-air screenings.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -521,7 +521,7 @@ def seed_products(cat_ids):
             "sale_price": 289900.00,
             "rent_price_per_day": None,
             "stock_qty": 14,
-            "image_url": "/static/images/products/epson_ex9240.jpg",
+            "image_url": "/static/images/products/epson_ebw52.jpg",
             "description": "Full HD 1080p dynamic wireless projector with 4000 lumens of equal color and white brightness.",
             "specs": {
                 "resolution": "1920x1080 (Full HD)",
@@ -597,7 +597,7 @@ def seed_products(cat_ids):
             "sale_price": 249900.00,
             "rent_price_per_day": None,
             "stock_qty": 8,
-            "image_url": "/static/images/products/alr_screen_120.jpg",
+            "image_url": "/static/images/products/epson_ls500.jpg",
             "description": "Edge Free 120-inch 16:9 ambient light rejecting fixed frame screen designed specifically for 4K/8K projectors.",
             "specs": {
                 "screen_size": "120 inch diagonal",
@@ -616,7 +616,7 @@ def seed_products(cat_ids):
             "sale_price": 65900.00,
             "rent_price_per_day": 3500.00,
             "stock_qty": 20,
-            "image_url": "/static/images/products/chief_mount.jpg",
+            "image_url": "/static/images/products/barco_dp2k.jpg",
             "description": "Engineered micro-adjustable ceiling bracket system with integrated cable management and Centris technology.",
             "specs": {
                 "max_weight_capacity": "22.7 kg",
