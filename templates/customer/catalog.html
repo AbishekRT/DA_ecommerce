@@ -6,29 +6,8 @@
 <div class="hero-banner-container position-relative">
   <!-- Main Banner Image -->
   <img src="{{ url_for('static', filename='images/hero_banner.webp') }}?v=magcubic_hd" alt="Projector Special Season Banner" class="hero-banner-img" />
-
-  <!-- Left & Right Carousel Arrows -->
-  <button type="button" class="hero-arrow-btn prev-btn" aria-label="Previous Slide">
-    <i class="bi bi-chevron-left"></i>
-  </button>
-  <button type="button" class="hero-arrow-btn next-btn" aria-label="Next Slide">
-    <i class="bi bi-chevron-right"></i>
-  </button>
-
-  <!-- Bottom Indicator Bars -->
-  <div class="hero-slide-indicators">
-    <div class="hero-slide-bar"></div>
-    <div class="hero-slide-bar active"></div>
-    <div class="hero-slide-bar"></div>
-    <div class="hero-slide-bar"></div>
-    <div class="hero-slide-bar"></div>
-  </div>
-
-  <!-- Right Side Floating Reviews Badge -->
-  <div class="floating-reviews-badge">
-    <span>★ Our Reviews</span>
-  </div>
 </div>
+
 {% endblock %}
 
 {% block content %}
