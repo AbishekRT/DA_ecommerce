@@ -53,13 +53,13 @@ def create_indexes():
     db["users"].create_index([("email", ASCENDING)], unique=True)
     db["products"].create_index([("category_id", ASCENDING)])
     db["products"].create_index([("type", ASCENDING)])
+    db["products"].create_index([("name", "text"), ("brand", "text"), ("description", "text")])
     db["rentals"].create_index([
         ("product_id", ASCENDING),
         ("start_date",  ASCENDING),
         ("end_date",    ASCENDING),
     ])
-    db["orders"].create_index([("user_id", ASCENDING)])
-    db["orders"].create_index([("created_at", DESCENDING)])
+    db["orders"].create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
     print("[seed] Indexes created.")
 
 

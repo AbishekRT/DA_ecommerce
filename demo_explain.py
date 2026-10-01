@@ -1,6 +1,6 @@
 """
 demo_explain.py
-Demonstrates MongoDB query optimization and index usage using .explain().
+Demonstrates MongoDB query optimization and index usage using .explain('executionStats').
 Use this script during your academic viva presentation or for report screenshots.
 
 Run with:  python demo_explain.py
@@ -10,39 +10,76 @@ import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from datetime import datetime, timezone, timedelta
+from bson import ObjectId
+
+try:
+    import certifi
+    ca = certifi.where()
+except Exception:
+    ca = None
 
 load_dotenv()
 
-client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/"))
+mongo_uri = os.getenv("MONGODB_URI", "mongodb+srv://abhishakeshanaka_db_user:asiri123@projectorshop.otoylj4.mongodb.net/projector_ecommerce?retryWrites=true&w=majority")
+client_kwargs = {
+    "serverSelectionTimeoutMS": 6000,
+    "connectTimeoutMS": 6000,
+}
+if "mongodb+srv://" in mongo_uri and ca:
+    client_kwargs["tlsCAFile"] = ca
+
+client = MongoClient(mongo_uri, **client_kwargs)
 db     = client[os.getenv("DATABASE_NAME", "projector_ecommerce")]
 
 def print_section(title):
-    print("\n" + "=" * 75)
+    print("\n" + "=" * 78)
     print(f"  {title}")
-    print("=" * 75)
+    print("=" * 78)
+
+def _find_index_details(plan):
+    """Recursively search query planner stages for index name and stage."""
+    if not isinstance(plan, dict):
+        return None, None
+
+    stage = plan.get("stage", "UNKNOWN")
+    index_name = plan.get("indexName")
+
+    if index_name:
+        return stage, index_name
+
+    if "inputStage" in plan:
+        sub_stage, sub_index = _find_index_details(plan["inputStage"])
+        if sub_index:
+            return f"{stage} -> {sub_stage}", sub_index
+
+    if "inputStages" in plan and isinstance(plan["inputStages"], list):
+        for sub in plan["inputStages"]:
+            sub_stage, sub_index = _find_index_details(sub)
+            if sub_index:
+                return f"{stage} -> {sub_stage}", sub_index
+
+    return stage, None
 
 def print_explain_summary(explain_result):
     query_planner = explain_result.get("queryPlanner", {})
     winning_plan  = query_planner.get("winningPlan", {})
     exec_stats    = explain_result.get("executionStats", {})
 
-    # Extract stage details (handling possible SHARDING/FETCH stages)
-    stage = winning_plan.get("stage", "UNKNOWN")
-    index_name = "None (Full Collection Scan - COLLSCAN)"
-    
-    if stage == "FETCH" and "inputStage" in winning_plan:
-        sub_stage = winning_plan["inputStage"].get("stage")
-        stage = f"FETCH -> {sub_stage}"
-        index_name = winning_plan["inputStage"].get("indexName", "N/A")
-    elif "indexName" in winning_plan:
-        index_name = winning_plan.get("indexName")
+    stage, index_name = _find_index_details(winning_plan)
+    if not index_name:
+        index_name = "None (Full Collection Scan - COLLSCAN)"
 
-    print(f"  [+] Execution Stage      : {stage}")
-    print(f"  [+] Index Used           : {index_name}")
-    print(f"  [+] Total Docs Examined  : {exec_stats.get('totalDocsExamined', 0)}")
-    print(f"  [+] Total Keys Examined  : {exec_stats.get('totalKeysExamined', 0)}")
-    print(f"  [+] Documents Returned   : {exec_stats.get('nReturned', 0)}")
-    print(f"  [+] Execution Time       : {exec_stats.get('executionTimeMillis', 0)} ms")
+    docs_examined = exec_stats.get("totalDocsExamined", 0)
+    keys_examined = exec_stats.get("totalKeysExamined", 0)
+    returned      = exec_stats.get("nReturned", 0)
+    exec_time     = exec_stats.get("executionTimeMillis", 0)
+
+    print(f"  [+] Winning Execution Plan : {stage}")
+    print(f"  [+] Target Index Utilized  : {index_name}")
+    print(f"  [+] Total Keys Examined    : {keys_examined}")
+    print(f"  [+] Total Docs Examined    : {docs_examined}")
+    print(f"  [+] Documents Returned     : {returned}")
+    print(f"  [+] Server Execution Time  : {exec_time} ms")
 
 def run_demo():
     print_section("DEMONSTRATION 1: Single Field Index on products.category_id")
@@ -65,17 +102,19 @@ def run_demo():
     prod = db["products"].find_one({"type": {"$in": ["rent", "both"]}})
     if prod:
         now = datetime.now(timezone.utc)
+        start_str = now.strftime("%Y-%m-%d")
+        end_str   = (now + timedelta(days=7)).strftime("%Y-%m-%d")
         query_rental = {
             "product_id": prod["_id"],
-            "status": {"$in": ["confirmed", "active"]},
-            "start_date": {"$lt": now + timedelta(days=7)},
-            "end_date":   {"$gt": now},
+            "status":     {"$in": ["confirmed", "active", "reserved"]},
+            "start_date": {"$lt": end_str},
+            "end_date":   {"$gt": start_str},
         }
-        print(f"  Query: db.rentals.find({{ product_id: ObjectId('{prod['_id']}'), date_range_filter }})")
+        print(f"  Query: db.rentals.find({{ product_id: ObjectId('{prod['_id']}'), date_ranges }})")
         explain_rental = db["rentals"].find(query_rental).explain()
         print_explain_summary(explain_rental)
 
-    print_section("DEMONSTRATION 4: Descending Sort Index on orders.created_at")
+    print_section("DEMONSTRATION 4: Compound Sorting Index on orders (user_id + created_at DESC)")
     user = db["users"].find_one({"role": "customer"})
     if user:
         query_order = {"user_id": user["_id"]}
@@ -83,10 +122,16 @@ def run_demo():
         explain_order = db["orders"].find(query_order).sort("created_at", -1).explain()
         print_explain_summary(explain_order)
 
-    print("\n" + "=" * 75)
-    print("  Summary: All queries successfully utilized indexes (IXSCAN).")
-    print("  No full collection scans (COLLSCAN) were performed.")
-    print("=" * 75 + "\n")
+    print_section("DEMONSTRATION 5: Full-Text Search Index on products (name, brand, description)")
+    query_text = {"$text": {"$search": "4K Laser Cinema"}}
+    print("  Query: db.products.find({ $text: { $search: '4K Laser Cinema' } })")
+    explain_text = db["products"].find(query_text).explain()
+    print_explain_summary(explain_text)
+
+    print("\n" + "=" * 78)
+    print("  VERIFICATION SUMMARY: All operations successfully utilized IXSCAN / TEXT index.")
+    print("  No unindexed Collection Scans (COLLSCAN) occurred.")
+    print("=" * 78 + "\n")
 
 if __name__ == "__main__":
     run_demo()

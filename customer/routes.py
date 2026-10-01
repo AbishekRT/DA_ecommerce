@@ -62,6 +62,16 @@ def catalog():
         # $in matches products listed as that specific type OR as "both"
         query["type"] = {"$in": [type_filter, "both"]}
 
+    # Filter by search query (text/regex matching name, brand, description, resolution)
+    q = request.args.get("q", "").strip()
+    if q:
+        query["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"brand": {"$regex": q, "$options": "i"}},
+            {"description": {"$regex": q, "$options": "i"}},
+            {"specs.resolution": {"$regex": q, "$options": "i"}},
+        ]
+
     # Direct PyMongo find — returns a cursor of product documents
     products = list(products_col.find(query))
 
@@ -84,6 +94,7 @@ def catalog():
         selected_cat=cat_id,
         selected_type=type_filter,
         selected_sort=sort_by,
+        search_query=q,
     )
 
 
@@ -162,6 +173,10 @@ def view_cart():
     Displays the current user's cart.
     Cart items REFERENCE product_id so prices always reflect live data.
     """
+    if current_user.role in ['admin', 'staff']:
+        flash("Shopping cart is reserved for Customer accounts. Staff and Admins manage operations via the Management Console.", "info")
+        return redirect(url_for("admin.dashboard" if current_user.role == "admin" else "admin.rentals_list"))
+
     # REFERENCE: cart items store product_id as a reference (not embedded
     # product data) so the price and stock shown in the cart always reflect
     # the current state of the products collection.
@@ -206,6 +221,10 @@ def add_to_cart():
     Adds an item to the cart (upserts the cart document).
     One cart document per user — upserted with update_one + $setOnInsert.
     """
+    if current_user.role in ['admin', 'staff']:
+        flash("Shopping cart is disabled for Administrative and Staff accounts.", "warning")
+        return redirect(url_for("customer.catalog"))
+
     product_id = request.form.get("product_id")
     item_type  = request.form.get("type")       # "sell" or "rent"
     qty        = int(request.form.get("qty", 1))
@@ -300,6 +319,10 @@ def checkout():
     GET  — shows the checkout review page.
     POST — dummy payment: creates order/rental documents and clears the cart.
     """
+    if current_user.role in ['admin', 'staff']:
+        flash("Checkout is disabled for Staff and Admin accounts.", "warning")
+        return redirect(url_for("admin.dashboard" if current_user.role == "admin" else "admin.rentals_list"))
+
     user_oid = ObjectId(current_user.id)
     cart = carts_col.find_one({"user_id": user_oid})
 
@@ -348,7 +371,7 @@ def checkout():
                 total = ppd * days * item["qty"]
 
                 # ---- Rental availability conflict check ----
-                # Core NoSQL query: find any CONFIRMED or ACTIVE rental for
+                # Core NoSQL query: find any CONFIRMED, ACTIVE, or RESERVED rental for
                 # the same product whose date range overlaps the requested range.
                 # Two ranges [A,B] and [C,D] overlap when A < D AND C < B.
                 # Cancelled rentals are excluded by the status $in filter —
@@ -359,7 +382,7 @@ def checkout():
 
                 conflict = rentals_col.find_one({
                     "product_id": item["product_id"],
-                    "status": {"$in": ["confirmed", "active"]},
+                    "status": {"$in": ["confirmed", "active", "reserved"]},
                     "start_date": {"$lt": end_str},
                     "end_date":   {"$gt": start_str},
                 })

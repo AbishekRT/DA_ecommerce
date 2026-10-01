@@ -47,6 +47,22 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # ------------------------------------------------------------------
+    # Context Processor (Live Cart Item Count for Customer Navbar)
+    # ------------------------------------------------------------------
+    @app.context_processor
+    def inject_cart_count():
+        from flask_login import current_user
+        if current_user.is_authenticated and current_user.role == 'customer':
+            try:
+                from extensions import carts_col
+                cart = carts_col.find_one({"user_id": ObjectId(current_user.id)})
+                count = len(cart.get("items", [])) if cart else 0
+                return dict(cart_count=count)
+            except Exception:
+                return dict(cart_count=0)
+        return dict(cart_count=0)
+
+    # ------------------------------------------------------------------
     # Custom Error Handlers (Industrial Grade 403, 404, 500 Pages)
     # ------------------------------------------------------------------
     @app.errorhandler(403)

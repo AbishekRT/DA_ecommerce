@@ -61,13 +61,18 @@
               </a>
             </li>
             <li class="nav-item">
+              <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('admin.users_list') }}">
+                <i class="bi bi-people me-1 text-warning"></i>User Directory
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link text-white-50 px-2.5 py-1.5 rounded-2" href="{{ url_for('customer.catalog') }}">
                 <i class="bi bi-eye me-1"></i>Storefront View
               </a>
             </li>
           {% else %}
             <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'customer.catalog' and not request.args.get('category') and not request.args.get('type') %}active fw-bold text-white{% endif %}" href="{{ url_for('customer.catalog') }}">All products</a>
+              <a class="nav-link {% if request.endpoint == 'customer.catalog' and not request.args.get('category') and not request.args.get('type') and not request.args.get('q') %}active fw-bold text-white{% endif %}" href="{{ url_for('customer.catalog') }}">All products</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('customer.catalog') }}?type=sell">Home Projectors</a>
@@ -88,10 +93,15 @@
 
         <!-- Right Side Utility Icons -->
         <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0">
-          <!-- Search Icon -->
-          <a href="{{ url_for('customer.catalog') }}" class="text-white text-decoration-none fs-5" title="Search Catalog">
-            <i class="bi bi-search"></i>
-          </a>
+          <!-- Search Form Input -->
+          <form action="{{ url_for('customer.catalog') }}" method="GET" class="d-flex align-items-center position-relative">
+            <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search 4K, brand..."
+                   class="form-control form-control-sm bg-dark text-white border-secondary rounded-pill pe-4 ps-3"
+                   style="max-width: 175px; font-size: 0.8rem; background-color: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.2) !important;" />
+            <button type="submit" class="btn btn-link text-white-50 position-absolute end-0 top-50 translate-middle-y me-1.5 p-0 border-0" title="Search">
+              <i class="bi bi-search" style="font-size: 0.75rem;"></i>
+            </button>
+          </form>
 
           <!-- User Profile Dropdown / Sign In -->
           {% if current_user.is_authenticated %}
@@ -115,8 +125,10 @@
               <li><hr class="dropdown-divider my-1"></li>
               {% if current_user.role == 'admin' %}
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2 text-warning"></i>Admin Console</a></li>
+              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.users_list') }}"><i class="bi bi-people me-2 text-primary"></i>User Directory</a></li>
               {% elif current_user.role == 'staff' %}
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.rentals_list') }}"><i class="bi bi-calendar-range me-2 text-info"></i>Rental Operations</a></li>
+              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.users_list') }}"><i class="bi bi-people me-2 text-primary"></i>User Directory</a></li>
               {% else %}
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('customer.order_history') }}"><i class="bi bi-bag-check me-2 text-primary"></i>My Orders &amp; Rentals</a></li>
               {% endif %}
@@ -130,15 +142,21 @@
           </a>
           {% endif %}
 
-          <!-- Cart Icon with Floating Badge -->
+          <!-- Cart Icon (Disabled for Staff/Admin, Live for Customers) -->
+          {% if current_user.is_authenticated and current_user.role in ['admin', 'staff'] %}
+          <span class="text-white-50 fs-5 position-relative me-1 opacity-50" title="Shopping cart disabled for {{ current_user.role | capitalize }} role" style="cursor: not-allowed;">
+            <i class="bi bi-bag-x"></i>
+          </span>
+          {% else %}
           <a href="{{ url_for('customer.view_cart') }}" class="text-white text-decoration-none fs-5 position-relative me-1" title="Shopping Cart">
             <i class="bi bi-bag"></i>
-            {% if session.get('cart') and session.get('cart') | length > 0 %}
+            {% if cart_count and cart_count > 0 %}
             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; padding: 0.25em 0.45em;">
-              {{ session.get('cart') | length }}
+              {{ cart_count }}
             </span>
             {% endif %}
           </a>
+          {% endif %}
         </div>
       </div>
     </div>

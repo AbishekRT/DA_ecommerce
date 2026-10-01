@@ -328,3 +328,18 @@ def update_rental_status(rental_id):
     )
     flash(f"Rental status updated to '{new_status}'.", "success")
     return redirect(url_for("admin.rentals_list"))
+
+
+# ===========================================================================
+# USER DIRECTORY (Admin & Staff)
+# ===========================================================================
+@admin_bp.route("/users")
+@login_required
+@role_required("admin", "staff")
+def users_list():
+    """All registered user accounts and RBAC roles."""
+    users = list(users_col.find().sort("created_at", -1))
+    for u in users:
+        u["order_count"] = orders_col.count_documents({"user_id": u["_id"]})
+        u["rental_count"] = rentals_col.count_documents({"user_id": u["_id"]})
+    return render_template("admin/users.html", users=users)
