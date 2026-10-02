@@ -128,6 +128,14 @@ def run_demo():
     explain_text = db["products"].find(query_text).explain()
     print_explain_summary(explain_text)
 
+    print_section("DEMONSTRATION 6: Single Field Index on products.type")
+    query_type = {"type": "both"}
+    print("  Query: db.products.find({'type': 'both'})")
+    count_type = db["products"].count_documents(query_type)
+    print(f"  Matching Documents in Database : {count_type} (Dual-mode sale and rental units)")
+    explain_type = db["products"].find(query_type).explain()
+    print_explain_summary(explain_type)
+
     print("\n" + "=" * 78)
     print("  VERIFICATION SUMMARY: All operations successfully utilized IXSCAN / TEXT index.")
     print("  No unindexed Collection Scans (COLLSCAN) occurred.")
