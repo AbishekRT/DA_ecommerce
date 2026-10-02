@@ -227,11 +227,38 @@ def add_to_cart():
 
     product_id = request.form.get("product_id")
     item_type  = request.form.get("type")       # "sell" or "rent"
-    qty        = int(request.form.get("qty", 1))
 
     product = products_col.find_one({"_id": _oid(product_id)})
     if not product:
         abort(404)
+
+    # Validate mode vs product type
+    if item_type == "sell" and product.get("type") == "rent":
+        flash("This product is available for rent only.", "warning")
+        return redirect(url_for("customer.product_detail", product_id=product_id))
+    if item_type == "rent" and product.get("type") == "sell":
+        flash("This product is available for purchase only.", "warning")
+        return redirect(url_for("customer.product_detail", product_id=product_id))
+
+    # Quantity validation
+    try:
+        qty = int(request.form.get("qty", 1))
+    except (ValueError, TypeError):
+        flash("Quantity must be a valid integer.", "danger")
+        return redirect(url_for("customer.product_detail", product_id=product_id))
+
+    if qty < 1:
+        flash("Quantity must be at least 1.", "warning")
+        return redirect(url_for("customer.product_detail", product_id=product_id))
+
+    if item_type == "sell":
+        stock_avail = product.get("stock_qty", 0) or 0
+        if stock_avail <= 0:
+            flash(f"'{product['name']}' is currently out of stock.", "danger")
+            return redirect(url_for("customer.product_detail", product_id=product_id))
+        if qty > stock_avail:
+            flash(f"Requested quantity ({qty}) exceeds available stock ({stock_avail}).", "warning")
+            return redirect(url_for("customer.product_detail", product_id=product_id))
 
     new_item = {
         # REFERENCE: product_id is stored as a reference so the cart always
@@ -508,11 +535,11 @@ def order_history():
 def cancel_order(order_id):
     """
     Customer can cancel their own order only while status is 'pending'.
-    Conditional update_one — the status check is inside the query filter,
+    Conditional update_one - the status check is inside the query filter,
     so MongoDB atomically verifies and updates in one operation.
-    This is a clean, explainable viva example of conditional updates.
+    If stock was deducted, stock is safely restored.
     """
-    result = orders_col.update_one(
+    order = orders_col.find_one_and_update(
         {
             "_id":     _oid(order_id),
             "user_id": ObjectId(current_user.id),  # ensures customers can only cancel their own orders
@@ -520,7 +547,14 @@ def cancel_order(order_id):
         },
         {"$set": {"status": "cancelled"}},
     )
-    if result.modified_count == 1:
+    if order:
+        if order.get("stock_deducted"):
+            for item in order.get("items", []):
+                products_col.update_one(
+                    {"_id": item["product_id"]},
+                    {"$inc": {"stock_qty": item["qty"]}}
+                )
+            orders_col.update_one({"_id": order["_id"]}, {"$set": {"stock_deducted": False}})
         flash("Order cancelled successfully.", "success")
     else:
         flash("Order could not be cancelled (it may no longer be pending).", "warning")

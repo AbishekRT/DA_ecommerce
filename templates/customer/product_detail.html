@@ -129,9 +129,15 @@
                 </div>
               </div>
               <div class="col">
+                {% if product.stock_qty and product.stock_qty > 0 %}
                 <button type="submit" class="btn-retail-cart">
                   <i class="bi bi-cart-plus-fill"></i>ADD TO CART
                 </button>
+                {% else %}
+                <button type="button" class="btn btn-secondary w-100 rounded-pill py-2.5 fw-semibold" disabled>
+                  <i class="bi bi-x-circle me-1"></i>OUT OF STOCK
+                </button>
+                {% endif %}
               </div>
             </div>
           </form>

@@ -283,12 +283,26 @@ def orders_list():
 @login_required
 @role_required("admin", "staff")
 def update_order_status(order_id):
-    """Update order status (pending -> confirmed -> completed / cancelled)."""
+    """Update order status (pending -> confirmed -> processing -> shipped -> completed -> cancelled)."""
     new_status = request.form.get("status")
     valid = {"pending", "confirmed", "processing", "shipped", "completed", "cancelled"}
     if new_status not in valid:
         flash("Invalid status specified.", "danger")
         return redirect(url_for("admin.orders_list"))
+
+    order = orders_col.find_one({"_id": _oid(order_id)})
+    if not order:
+        flash("Order not found.", "danger")
+        return redirect(url_for("admin.orders_list"))
+
+    if new_status == "cancelled" and order.get("status") != "cancelled":
+        if order.get("stock_deducted"):
+            for item in order.get("items", []):
+                products_col.update_one(
+                    {"_id": item["product_id"]},
+                    {"$inc": {"stock_qty": item["qty"]}}
+                )
+            orders_col.update_one({"_id": order["_id"]}, {"$set": {"stock_deducted": False}})
 
     orders_col.update_one(
         {"_id": _oid(order_id)},
