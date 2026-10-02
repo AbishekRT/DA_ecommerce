@@ -10,6 +10,7 @@ No ODM, no repository layer — every query is readable in-place.
 from datetime import datetime, timezone, timedelta, date
 from bson import ObjectId
 from bson.errors import InvalidId
+from pymongo import ReturnDocument
 
 from flask import (
     Blueprint, render_template, redirect, url_for,

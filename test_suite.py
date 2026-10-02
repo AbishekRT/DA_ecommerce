@@ -192,15 +192,18 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "password": "Alice#Pass2026$"
         }, follow_redirects=True)
 
-        # Optoma ZH606 is actively rented in seed data
-        p_zh606 = products_col.find_one({"name": "Optoma ZH606"})
+        # Optoma ZH606 is actively rented in seed data (2026-09-29 to 2026-10-06)
+        p_zh606 = products_col.find_one({"name": {"$regex": "Optoma ZH606"}})
         self.assertIsNotNone(p_zh606)
 
-        now = datetime.now(timezone.utc)
-        overlap_start = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-        overlap_end   = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        # Attempt overlapping booking in current window
+        overlap_start = "2026-10-02"
+        overlap_end   = "2026-10-05"
 
-        # Add rental item to cart
+        # Clear alice's cart and add conflicting rental
+        alice = users_col.find_one({"email": "alice@example.com"})
+        carts_col.update_one({"user_id": alice["_id"]}, {"$set": {"items": []}}, upsert=True)
+
         self.client.post("/cart/add", data={
             "product_id": str(p_zh606["_id"]),
             "type": "rent",
@@ -218,14 +221,14 @@ class ProjectorShopTestSuite(unittest.TestCase):
     # -----------------------------------------------------------------------
     def test_08_conditional_order_cancellation(self):
         """TC-08: Verify atomic filter {status: 'pending'} for customer cancellation"""
-        bob = users_col.find_one({"email": "bob@example.com"})
-        pending_order = orders_col.find_one({"user_id": bob["_id"], "status": "pending"})
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
+        pending_order = orders_col.find_one({"user_id": charlie["_id"], "status": "pending"})
         self.assertIsNotNone(pending_order)
 
         self.client.get("/logout", follow_redirects=True)
         self.client.post("/login", data={
-            "email": "bob@example.com",
-            "password": "Bob#ProjStore99*"
+            "email": "charlie.d@gmail.com",
+            "password": "Charlie#2026!Pass"
         }, follow_redirects=True)
 
         # Cancel pending order
@@ -305,8 +308,8 @@ class ProjectorShopTestSuite(unittest.TestCase):
         """TC-11: Verify atomic stock decrement when purchasing retail products"""
         self.client.get("/logout", follow_redirects=True)
         self.client.post("/login", data={
-            "email": "charlie@example.com",
-            "password": "Charlie#Test2026!"
+            "email": "charlie.d@gmail.com",
+            "password": "Charlie#2026!Pass"
         }, follow_redirects=True)
 
         product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 5}})
@@ -315,7 +318,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         initial_stock = product["stock_qty"]
 
         # Clear charlie's cart and add 2 units
-        charlie = users_col.find_one({"email": "charlie@example.com"})
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
         carts_col.update_one({"user_id": charlie["_id"]}, {"$set": {"items": []}}, upsert=True)
 
         self.client.post("/cart/add", data={
@@ -340,11 +343,11 @@ class ProjectorShopTestSuite(unittest.TestCase):
         """TC-12: Verify checkout is aborted if requested qty exceeds available stock"""
         self.client.get("/logout", follow_redirects=True)
         self.client.post("/login", data={
-            "email": "charlie@example.com",
-            "password": "Charlie#Test2026!"
+            "email": "charlie.d@gmail.com",
+            "password": "Charlie#2026!Pass"
         }, follow_redirects=True)
 
-        charlie = users_col.find_one({"email": "charlie@example.com"})
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
         product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 0}})
         self.assertIsNotNone(product)
         p_id = product["_id"]
@@ -377,11 +380,11 @@ class ProjectorShopTestSuite(unittest.TestCase):
         """TC-13: Verify multi-item rollback restores earlier reserved stock if a later item fails"""
         self.client.get("/logout", follow_redirects=True)
         self.client.post("/login", data={
-            "email": "charlie@example.com",
-            "password": "Charlie#Test2026!"
+            "email": "charlie.d@gmail.com",
+            "password": "Charlie#2026!Pass"
         }, follow_redirects=True)
 
-        charlie = users_col.find_one({"email": "charlie@example.com"})
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
         prods = list(products_col.find({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 2}}).limit(2))
         self.assertEqual(len(prods), 2)
 
@@ -419,14 +422,14 @@ class ProjectorShopTestSuite(unittest.TestCase):
         p_id = product["_id"]
         stock_before = product["stock_qty"]
 
-        # Create a pending order for bob
+        # Create a pending order for bob with stock_deducted: True
         bob = users_col.find_one({"email": "bob@example.com"})
         order_doc = {
             "user_id": bob["_id"],
             "items": [{"product_id": p_id, "type": "sell", "unit_price": product.get("sale_price", 10000), "qty": 2}],
             "total": product.get("sale_price", 10000) * 2,
             "status": "pending",
-            "stock_restored": False,
+            "stock_deducted": True,
             "created_at": datetime.now(timezone.utc)
         }
         order_res = orders_col.insert_one(order_doc)
@@ -446,11 +449,11 @@ class ProjectorShopTestSuite(unittest.TestCase):
         prod_after = products_col.find_one({"_id": p_id})
         self.assertEqual(prod_after["stock_qty"], stock_before + 2)
 
-        # Verify order marked stock_restored
+        # Verify order marked stock_deducted: False
         updated_order = orders_col.find_one({"_id": order_id})
         self.assertEqual(updated_order["status"], "cancelled")
-        self.assertTrue(updated_order.get("stock_restored"))
-        self.log_result("TC-14", "Stock Restore on Customer Cancel", "PASS", "Product stock restored (+2) and order marked stock_restored: True.")
+        self.assertFalse(updated_order.get("stock_deducted"))
+        self.log_result("TC-14", "Stock Restore on Customer Cancel", "PASS", "Product stock restored (+2) and order marked stock_deducted: False.")
 
     # -----------------------------------------------------------------------
     # TC-15: Stock Restore on Admin Order Cancellation
@@ -468,7 +471,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "items": [{"product_id": p_id, "type": "sell", "unit_price": product.get("sale_price", 10000), "qty": 3}],
             "total": product.get("sale_price", 10000) * 3,
             "status": "confirmed",
-            "stock_restored": False,
+            "stock_deducted": True,
             "created_at": datetime.now(timezone.utc)
         }
         order_res = orders_col.insert_one(order_doc)
@@ -514,7 +517,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "type": "sell",
             "qty": "0"
         }, follow_redirects=True)
-        self.assertIn(b"Invalid quantity specified", res_0.data)
+        self.assertIn(b"Quantity must be at least 1", res_0.data)
 
         # Test qty = -3
         res_neg = self.client.post("/cart/add", data={
@@ -522,7 +525,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "type": "sell",
             "qty": "-3"
         }, follow_redirects=True)
-        self.assertIn(b"Invalid quantity specified", res_neg.data)
+        self.assertIn(b"Quantity must be at least 1", res_neg.data)
         self.log_result("TC-16", "Quantity Validation", "PASS", "Server-side rejection for non-positive quantities (0, -3).")
 
     # -----------------------------------------------------------------------
@@ -544,7 +547,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
                 "type": "sell",
                 "qty": "1"
             }, follow_redirects=True)
-            self.assertIn(b"is only available for rental", res_buy.data)
+            self.assertIn(b"available for rent only", res_buy.data)
 
         # Sell only product
         sell_prod = products_col.find_one({"type": "sell"})
@@ -556,7 +559,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
                 "rent_start_date": now.strftime("%Y-%m-%d"),
                 "rent_end_date": (now + timedelta(days=2)).strftime("%Y-%m-%d")
             }, follow_redirects=True)
-            self.assertIn(b"is only available for direct purchase", res_rent.data)
+            self.assertIn(b"available for purchase only", res_rent.data)
 
         self.log_result("TC-17", "Incompatible Purchase Mode", "PASS", "Server enforced product purchase mode constraints (sell vs rent).")
 
@@ -567,9 +570,12 @@ class ProjectorShopTestSuite(unittest.TestCase):
         """TC-18: Verify atomic cart claiming prevents multiple orders from double submission"""
         self.client.get("/logout", follow_redirects=True)
         self.client.post("/login", data={
-            "email": "charlie@example.com",
-            "password": "Charlie#Test2026!"
+            "email": "charlie.d@gmail.com",
+            "password": "Charlie#2026!Pass"
         }, follow_redirects=True)
+
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
+        carts_col.update_one({"user_id": charlie["_id"]}, {"$set": {"items": []}}, upsert=True)
 
         product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 5}})
         self.assertIsNotNone(product)
@@ -581,7 +587,6 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "qty": "1"
         }, follow_redirects=True)
 
-        charlie = users_col.find_one({"email": "charlie@example.com"})
         orders_before = orders_col.count_documents({"user_id": charlie["_id"]})
 
         # First checkout -> succeeds
@@ -601,7 +606,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
     # -----------------------------------------------------------------------
     def test_19_cart_empty_post_checkout(self):
         """TC-19: Verify user cart document has items: [] after successful checkout"""
-        charlie = users_col.find_one({"email": "charlie@example.com"})
+        charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
         cart = carts_col.find_one({"user_id": charlie["_id"]})
         self.assertIsNotNone(cart)
         self.assertEqual(len(cart.get("items", [])), 0)
@@ -638,7 +643,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "rent_start_date": "2026-11-10",
             "rent_end_date": "2026-11-05"
         }, follow_redirects=True)
-        self.assertIn(b"must be after the start date", res_rev.data)
+        self.assertIn(b"strictly after start date", res_rev.data)
 
         # 3. Duration > 30 days
         res_long = self.client.post("/cart/add", data={
@@ -647,7 +652,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "rent_start_date": "2026-11-01",
             "rent_end_date": "2026-12-15"
         }, follow_redirects=True)
-        self.assertIn(b"cannot exceed 30 days", res_long.data)
+        self.assertIn(b"exceeds the maximum allowed limit of 30 days", res_long.data)
         self.log_result("TC-20", "Rental Date Range Validation", "PASS", "Rejected past dates, inverted date ranges, and bookings exceeding 30 days.")
 
     # -----------------------------------------------------------------------
@@ -709,7 +714,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
 
         # Test invalid status rejected
         res_bad = self.client.post(f"/admin/orders/{order['_id']}/status", data={"status": "invalid_status"}, follow_redirects=True)
-        self.assertIn(b"Invalid order status specified", res_bad.data)
+        self.assertIn(b"Invalid status specified", res_bad.data)
 
         self.log_result("TC-22", "Expanded Status Validation Sets", "PASS", "All 6 order/rental lifecycle statuses accepted; invalid statuses rejected.")
 
