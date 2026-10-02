@@ -157,17 +157,39 @@
             <div class="row g-2 mb-2">
               <div class="col-sm-6">
                 <label class="form-label text-muted fw-semibold mb-1" style="font-size: 0.75rem;">Start Date:</label>
-                <input type="date" name="rent_start_date" class="form-control form-control-sm rounded-2" required />
+                <input type="date" id="rent_start_date" name="rent_start_date" min="{{ sl_today }}" class="form-control form-control-sm rounded-2" required
+                       onchange="updateRentalEndMin(this.value);" />
               </div>
               <div class="col-sm-6">
                 <label class="form-label text-muted fw-semibold mb-1" style="font-size: 0.75rem;">End Date:</label>
-                <input type="date" name="rent_end_date" class="form-control form-control-sm rounded-2" required />
+                <input type="date" id="rent_end_date" name="rent_end_date" class="form-control form-control-sm rounded-2" required />
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold py-2 rounded-2">
               <i class="bi bi-calendar-check-fill me-1.5"></i>Book Rental &amp; Add to Cart
             </button>
           </form>
+          <script>
+            function updateRentalEndMin(startDateStr) {
+              if (!startDateStr) return;
+              const start = new Date(startDateStr);
+              if (isNaN(start.getTime())) return;
+              
+              const minEnd = new Date(start);
+              minEnd.setDate(minEnd.getDate() + 1);
+              
+              const maxEnd = new Date(start);
+              maxEnd.setDate(maxEnd.getDate() + 30);
+              
+              const endInput = document.getElementById('rent_end_date');
+              endInput.min = minEnd.toISOString().split('T')[0];
+              endInput.max = maxEnd.toISOString().split('T')[0];
+              
+              if (endInput.value && (new Date(endInput.value) <= start || new Date(endInput.value) > maxEnd)) {
+                endInput.value = minEnd.toISOString().split('T')[0];
+              }
+            }
+          </script>
         </div>
         {% endif %}
 

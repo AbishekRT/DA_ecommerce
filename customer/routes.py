@@ -7,7 +7,7 @@ Every MongoDB operation is a direct, explicit PyMongo call.
 No ODM, no repository layer — every query is readable in-place.
 """
 
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, timedelta, date
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -24,9 +24,55 @@ from extensions import (
 
 customer_bp = Blueprint("customer", __name__, template_folder="../templates/customer")
 
+# ---------------------------------------------------------------------------
+# Sri Lanka Timezone (UTC+5:30) and Rental Date Validation Helpers
+# ---------------------------------------------------------------------------
+SL_TZ = timezone(timedelta(hours=5, minutes=30))
+
+def get_sl_now():
+    """Returns current datetime in Sri Lanka timezone."""
+    return datetime.now(SL_TZ)
+
+def get_sl_today():
+    """Returns current date in Sri Lanka timezone."""
+    return datetime.now(SL_TZ).date()
+
+def validate_rental_dates(start_str, end_str):
+    """
+    Validates rental start and end date strings based on Sri Lanka business rules.
+    Rules:
+    1. Both start_date and end_date are required in YYYY-MM-DD format.
+    2. start_date must not be in the past.
+    3. end_date must be strictly after start_date (minimum 1 full day).
+    4. Duration must be at most 30 days.
+    Returns: (is_valid, error_message, start_utc, end_utc)
+    """
+    if not start_str or not end_str:
+        return False, "Both start and end dates are required for rental bookings.", None, None
+    try:
+        start_d = datetime.strptime(str(start_str).strip(), "%Y-%m-%d").date()
+        end_d   = datetime.strptime(str(end_str).strip(), "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return False, "Rental dates must be in valid YYYY-MM-DD format.", None, None
+
+    today = get_sl_today()
+    if start_d < today:
+        return False, "Rental start date cannot be in the past.", None, None
+
+    if end_d <= start_d:
+        return False, "Rental end date must be strictly after start date (minimum 1 day).", None, None
+
+    duration = (end_d - start_d).days
+    if duration > 30:
+        return False, f"Rental duration ({duration} days) exceeds the maximum allowed limit of 30 days.", None, None
+
+    start_utc = datetime(start_d.year, start_d.month, start_d.day, tzinfo=timezone.utc)
+    end_utc   = datetime(end_d.year, end_d.month, end_d.day, tzinfo=timezone.utc)
+    return True, "", start_utc, end_utc
+
 
 # ===========================================================================
-# HELPER — safe ObjectId conversion
+# HELPER - safe ObjectId conversion
 # ===========================================================================
 def _oid(s):
     """Convert string to ObjectId, abort 404 on invalid format."""
@@ -120,11 +166,13 @@ def product_detail(product_id):
     # It is referenced (not embedded) because categories are shared across
     # many products and must be manageable independently.
     category = categories_col.find_one({"_id": product["category_id"]})
+    sl_today = get_sl_today().strftime("%Y-%m-%d")
 
     return render_template(
         "customer/product_detail.html",
         product=product,
         category=category,
+        sl_today=sl_today,
     )
 
 
@@ -271,14 +319,14 @@ def add_to_cart():
     }
 
     if item_type == "rent":
-        try:
-            start_str = request.form.get("rent_start_date") or request.form.get("rental_start") or ""
-            end_str   = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
-            new_item["rent_start_date"] = datetime.strptime(start_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            new_item["rent_end_date"]   = datetime.strptime(end_str,   "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        except ValueError:
-            flash("Invalid rental dates specified.", "danger")
+        start_str = request.form.get("rent_start_date") or request.form.get("rental_start") or ""
+        end_str   = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
+        is_valid, err_msg, start_dt, end_dt = validate_rental_dates(start_str, end_str)
+        if not is_valid:
+            flash(err_msg, "danger")
             return redirect(url_for("customer.product_detail", product_id=product_id))
+        new_item["rent_start_date"] = start_dt
+        new_item["rent_end_date"]   = end_dt
 
     user_oid = ObjectId(current_user.id)
 
