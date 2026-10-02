@@ -70,7 +70,7 @@ def seed_users():
         {
             "email":         "admin@projectorshop.com",
             "password_hash": generate_password_hash("ProjAdmin#2026!Secure"),
-            "name":          "Abishek Shanaka (Lead Admin)",
+            "name":          "Abhishek Shanaka (Lead Admin)",
             "role":          "admin",
             "phone":         "+94 77 123 4567",
             "address":       "123 Galle Road, Colombo 03, Sri Lanka",
