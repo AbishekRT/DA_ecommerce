@@ -28,6 +28,8 @@ from auth.decorators import role_required
 admin_bp = Blueprint("admin", __name__, template_folder="../templates/admin")
 
 
+REVENUE_STATUSES = ["confirmed", "processing", "shipped", "completed"]
+
 def _oid(s):
     try:
         return ObjectId(s)
@@ -56,7 +58,7 @@ def dashboard():
     # Calculates total revenue from orders grouped by product category.
     # -----------------------------------------------------------------------
     revenue_pipeline = [
-        {"$match": {"status": {"$in": ["confirmed", "completed"]}}},
+        {"$match": {"status": {"$in": REVENUE_STATUSES}}},
         {"$unwind": "$items"},
         {
             "$lookup": {
