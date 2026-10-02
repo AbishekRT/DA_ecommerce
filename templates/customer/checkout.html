@@ -73,9 +73,10 @@
     </div>
 
     <!-- Action Buttons -->
-    <form method="POST" action="{{ url_for('customer.checkout') }}">
+    <form method="POST" action="{{ url_for('customer.checkout') }}" id="checkout-form"
+          onsubmit="const btn=document.getElementById('checkout-btn'); if(btn){btn.disabled=true; btn.innerHTML='<span class=\'spinner-border spinner-border-sm me-2\'></span>Processing Order...';}">
       <div class="d-grid mb-3">
-        <button type="submit" class="btn btn-success btn-lg rounded-pill py-3 fw-bold shadow-sm">
+        <button type="submit" id="checkout-btn" class="btn btn-success btn-lg rounded-pill py-3 fw-bold shadow-sm">
           <i class="bi bi-check-circle-fill me-2"></i>Confirm Order &amp; Reserve Items
         </button>
       </div>

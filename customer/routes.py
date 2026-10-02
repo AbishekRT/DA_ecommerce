@@ -391,137 +391,185 @@ def remove_from_cart():
 @login_required
 def checkout():
     """
-    GET  — shows the checkout review page.
-    POST — dummy payment: creates order/rental documents and clears the cart.
+    GET  - shows the checkout review page.
+    POST - atomic cart claim (Option A), stock reservation, order/rentals creation,
+           with automatic reverse compensation on any failure or exception.
     """
+    from pymongo import ReturnDocument
+
     if current_user.role in ['admin', 'staff']:
         flash("Checkout is disabled for Staff and Admin accounts.", "warning")
         return redirect(url_for("admin.dashboard" if current_user.role == "admin" else "admin.rentals_list"))
 
     user_oid = ObjectId(current_user.id)
-    cart = carts_col.find_one({"user_id": user_oid})
 
-    if not cart or not cart.get("items"):
-        flash("Your cart is empty.", "warning")
+    if request.method == "GET":
+        cart = carts_col.find_one({"user_id": user_oid})
+        if not cart or not cart.get("items"):
+            flash("Your cart is empty.", "warning")
+            return redirect(url_for("customer.view_cart"))
+
+        enriched = []
+        for item in cart["items"]:
+            product = products_col.find_one({"_id": item["product_id"]})
+            if product:
+                enriched.append({"item": item, "product": product})
+        return render_template("customer/checkout.html", enriched=enriched)
+
+    # --- POST: ATOMIC CART CLAIMING (OPTION A) ---
+    now = datetime.now(timezone.utc)
+    claimed_cart = carts_col.find_one_and_update(
+        {"user_id": user_oid, "items.0": {"$exists": True}},
+        {"$set": {"items": [], "updated_at": now}},
+        return_document=ReturnDocument.BEFORE,
+    )
+
+    if not claimed_cart or not claimed_cart.get("items"):
+        flash("Your cart is empty. Please add items before checking out.", "warning")
         return redirect(url_for("customer.view_cart"))
 
-    # Enrich cart items for the review page
-    enriched = []
-    for item in cart["items"]:
-        product = products_col.find_one({"_id": item["product_id"]})
-        if product:
-            enriched.append({"item": item, "product": product})
+    claimed_items = claimed_cart.get("items", [])
+    reserved_stock = []
+    inserted_order_id = None
+    inserted_rental_ids = []
 
-    if request.method == "POST":
-        now = datetime.now(timezone.utc)
-        sell_items   = []
-        sell_total   = 0
-        rental_docs  = []
+    def rollback_compensation(flash_msg, category="danger"):
+        # 1. Delete inserted rental documents if created
+        if inserted_rental_ids:
+            try:
+                rentals_col.delete_many({"_id": {"$in": inserted_rental_ids}})
+            except Exception:
+                pass
+        # 2. Delete inserted order document if created
+        if inserted_order_id:
+            try:
+                orders_col.delete_one({"_id": inserted_order_id})
+            except Exception:
+                pass
+        # 3. Restore any reserved stock
+        for pid, q in reserved_stock:
+            try:
+                products_col.update_one({"_id": pid}, {"$inc": {"stock_qty": q}})
+            except Exception:
+                pass
+        # 4. Restore claimed cart items back into the user's cart
+        try:
+            carts_col.update_one(
+                {"user_id": user_oid},
+                {"$set": {"items": claimed_items, "updated_at": datetime.now(timezone.utc)}}
+            )
+        except Exception:
+            pass
+        flash(flash_msg, category)
+        return redirect(url_for("customer.view_cart"))
 
-        for entry in enriched:
-            item    = entry["item"]
-            product = entry["product"]
+    try:
+        sell_items = []
+        sell_total = 0
+        rental_docs = []
+
+        # Step 1: Pre-validate all items
+        for item in claimed_items:
+            product = products_col.find_one({"_id": item["product_id"]})
+            if not product:
+                return rollback_compensation("A product in your cart is no longer available.")
 
             if item["type"] == "sell":
+                if product.get("type") == "rent":
+                    return rollback_compensation(f"'{product['name']}' is available for rent only.")
+                
+                qty = item.get("qty", 1)
+                if qty < 1:
+                    return rollback_compensation(f"Invalid quantity for '{product['name']}'.")
+
+                stock_avail = product.get("stock_qty", 0) or 0
+                if stock_avail < qty:
+                    return rollback_compensation(f"Insufficient stock for '{product['name']}'. Only {stock_avail} available.")
+
                 unit_price = product.get("sale_price", 0) or 0
-                subtotal   = unit_price * item["qty"]
+                subtotal = unit_price * qty
                 sell_total += subtotal
-                # EMBED: order items embed a price snapshot at checkout time.
-                # We freeze name, price, and qty so the order history is
-                # accurate even if product prices change later.
-                # This differs from the cart, which references live product data.
                 sell_items.append({
-                    "product_id": item["product_id"],  # kept for reference only
-                    "name":       product["name"],
-                    "qty":        item["qty"],
+                    "product_id": item["product_id"],
+                    "name": product["name"],
+                    "qty": qty,
                     "unit_price": unit_price,
-                    "subtotal":   subtotal,
+                    "subtotal": subtotal,
                 })
 
             elif item["type"] == "rent":
-                start = item.get("rent_start_date")
-                end   = item.get("rent_end_date")
-                days  = max((end - start).days, 1) if start and end else 1
-                ppd   = product.get("rent_price_per_day", 0) or 0
-                total = ppd * days * item["qty"]
+                if product.get("type") == "sell":
+                    return rollback_compensation(f"'{product['name']}' is available for purchase only.")
 
-                # ---- Rental availability conflict check ----
-                # Core NoSQL query: find any CONFIRMED, ACTIVE, or RESERVED rental for
-                # the same product whose date range overlaps the requested range.
-                # Two ranges [A,B] and [C,D] overlap when A < D AND C < B.
-                # Cancelled rentals are excluded by the status $in filter —
-                # cancelling a rental automatically frees up those dates
-                # with no extra "release" step needed.
-                start_str = start.strftime("%Y-%m-%d") if hasattr(start, "strftime") else str(start)
-                end_str   = end.strftime("%Y-%m-%d") if hasattr(end, "strftime") else str(end)
+                start = item.get("rent_start_date")
+                end = item.get("rent_end_date")
+                start_str = start.strftime("%Y-%m-%d") if hasattr(start, "strftime") else str(start)[:10]
+                end_str = end.strftime("%Y-%m-%d") if hasattr(end, "strftime") else str(end)[:10]
+
+                is_valid, err_msg, start_dt, end_dt = validate_rental_dates(start_str, end_str)
+                if not is_valid:
+                    return rollback_compensation(f"Rental date error for '{product['name']}': {err_msg}")
 
                 conflict = rentals_col.find_one({
                     "product_id": item["product_id"],
                     "status": {"$in": ["confirmed", "active", "reserved"]},
                     "start_date": {"$lt": end_str},
-                    "end_date":   {"$gt": start_str},
+                    "end_date": {"$gt": start_str},
                 })
                 if conflict:
-                    flash(
-                        f"'{product['name']}' is not available for the selected dates. "
-                        "Please choose different dates.",
-                        "danger",
-                    )
-                    return redirect(url_for("customer.view_cart"))
+                    return rollback_compensation(f"'{product['name']}' is not available for the selected dates ({start_str} to {end_str}). Please choose different dates.")
 
-                # REFERENCE: rentals.product_id is a reference (not embedded)
-                # because the availability-conflict query must filter rentals
-                # by product — this requires querying rentals independently
-                # of product documents. Embedding product data here would
-                # make that cross-document query impossible.
-                rental_doc = {
-                    "user_id":     user_oid,
-                    "product_id":  item["product_id"],
-                    "start_date":  start_str,
-                    "end_date":    end_str,
-                    "total_price": total,
-                    "status":      "pending",
-                    "created_at":  now,
-                }
-                rental_docs.append(rental_doc)
+                days = max((end_dt.date() - start_dt.date()).days, 1)
+                ppd = product.get("rent_price_per_day", 0) or 0
+                rental_total = ppd * days * item.get("qty", 1)
 
-        # --- Create order document if there are sale items ---
-        order_id = None
+                rental_docs.append({
+                    "user_id": user_oid,
+                    "product_id": item["product_id"],
+                    "start_date": start_str,
+                    "end_date": end_str,
+                    "total_price": rental_total,
+                    "status": "pending",
+                    "created_at": now,
+                })
+
+        # Step 2: Atomically reserve stock for all sale items
+        for s_item in sell_items:
+            res = products_col.update_one(
+                {"_id": s_item["product_id"], "stock_qty": {"$gte": s_item["qty"]}},
+                {"$inc": {"stock_qty": -s_item["qty"]}}
+            )
+            if res.modified_count == 1:
+                reserved_stock.append((s_item["product_id"], s_item["qty"]))
+            else:
+                prod = products_col.find_one({"_id": s_item["product_id"]})
+                avail = prod.get("stock_qty", 0) if prod else 0
+                return rollback_compensation(f"Insufficient stock for '{s_item['name']}'. Only {avail} available.")
+
+        # Step 3: Insert order document if sale items exist
         if sell_items:
             order_doc = {
-                # REFERENCE: user_id is a reference to the users collection.
-                # Embedding full user data here would duplicate it across every
-                # order and would go stale if the user updates their profile.
-                "user_id":    user_oid,
-                # EMBED: items array is embedded because it is a frozen snapshot
-                # of what was purchased — prices and names are captured at checkout
-                # time and are never updated independently.
-                "items":      sell_items,
-                "total":      sell_total,
-                "status":     "pending",
+                "user_id": user_oid,
+                "items": sell_items,
+                "total": sell_total,
+                "status": "pending",
+                "stock_deducted": True,
                 "created_at": now,
             }
-            result = orders_col.insert_one(order_doc)
-            order_id = result.inserted_id
+            order_result = orders_col.insert_one(order_doc)
+            inserted_order_id = order_result.inserted_id
 
-        # --- Create rental documents ---
-        rental_ids = []
+        # Step 4: Insert rental documents if rental items exist
         if rental_docs:
-            result = rentals_col.insert_many(rental_docs)
-            rental_ids = result.inserted_ids
-
-        # --- Clear the cart after successful checkout ---
-        # $set replaces the items array with an empty list
-        carts_col.update_one(
-            {"user_id": user_oid},
-            {"$set": {"items": [], "updated_at": now}},
-        )
+            rental_result = rentals_col.insert_many(rental_docs)
+            inserted_rental_ids = rental_result.inserted_ids
 
         flash("Payment successful! Your order has been placed.", "success")
         return redirect(url_for("customer.order_confirmation",
-                                order_id=str(order_id) if order_id else "none"))
+                                order_id=str(inserted_order_id) if inserted_order_id else "none"))
 
-    return render_template("customer/checkout.html", enriched=enriched)
+    except Exception as ex:
+        return rollback_compensation(f"An unexpected error occurred during checkout: {str(ex)}")
 
 
 # ===========================================================================
