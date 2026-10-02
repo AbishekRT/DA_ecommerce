@@ -63,6 +63,8 @@
               <span class="status-pill status-pill-pending"><i class="bi bi-clock"></i>Pending</span>
             {% elif s == 'confirmed' %}
               <span class="status-pill status-pill-active"><i class="bi bi-check-circle"></i>Confirmed</span>
+            {% elif s == 'reserved' %}
+              <span class="status-pill bg-warning-subtle text-dark border border-warning-subtle fw-bold"><i class="bi bi-bookmark-check"></i>Reserved</span>
             {% elif s == 'active' %}
               <span class="status-pill status-pill-reserved"><i class="bi bi-broadcast"></i>In Use</span>
             {% elif s == 'returned' %}
@@ -76,8 +78,8 @@
           <td class="text-end">
             <form method="POST" action="{{ url_for('admin.update_rental_status', rental_id=rental._id | string) }}"
                   class="d-inline-flex gap-1 justify-content-end">
-              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 130px; font-size: 0.8rem;">
-                {% for status in ['pending', 'confirmed', 'active', 'returned', 'cancelled'] %}
+              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 140px; font-size: 0.8rem;">
+                {% for status in ['pending', 'confirmed', 'reserved', 'active', 'returned', 'cancelled'] %}
                 <option value="{{ status }}" {% if rental.status == status %}selected{% endif %}>
                   {{ status | title }}
                 </option>

@@ -54,7 +54,9 @@
             <td>
               {% set s = order.status %}
               {% if s == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
-              {% elif s == 'confirmed' %}<span class="badge bg-info text-dark">Confirmed</span>
+              {% elif s == 'confirmed' %}<span class="badge bg-primary">Confirmed</span>
+              {% elif s == 'processing' %}<span class="badge bg-info text-dark">Processing</span>
+              {% elif s == 'shipped' %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle">Shipped</span>
               {% elif s == 'completed' %}<span class="badge bg-success">Completed</span>
               {% elif s == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
               {% else %}<span class="badge bg-secondary">{{ s | title }}</span>{% endif %}
@@ -68,7 +70,7 @@
                 </button>
               </form>
               {% else %}
-              <span class="text-muted small">:</span>
+              <span class="text-muted small">-</span>
               {% endif %}
             </td>
           </tr>
@@ -124,6 +126,8 @@
             <td>
               {% set s = rental.status %}
               {% if s == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>
+              {% elif s == 'confirmed' %}<span class="badge bg-info text-dark">Confirmed</span>
+              {% elif s == 'reserved' %}<span class="badge bg-warning-subtle text-dark border border-warning-subtle">Reserved</span>
               {% elif s == 'active' %}<span class="badge bg-primary">Active</span>
               {% elif s == 'returned' %}<span class="badge bg-success">Returned</span>
               {% elif s == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>

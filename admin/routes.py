@@ -283,7 +283,7 @@ def orders_list():
 def update_order_status(order_id):
     """Update order status (pending -> confirmed -> completed / cancelled)."""
     new_status = request.form.get("status")
-    valid = {"pending", "confirmed", "completed", "cancelled"}
+    valid = {"pending", "confirmed", "processing", "shipped", "completed", "cancelled"}
     if new_status not in valid:
         flash("Invalid status specified.", "danger")
         return redirect(url_for("admin.orders_list"))
@@ -315,9 +315,9 @@ def rentals_list():
 @login_required
 @role_required("admin", "staff")
 def update_rental_status(rental_id):
-    """Update rental status (pending -> active -> returned / cancelled)."""
+    """Update rental status (pending -> confirmed -> reserved -> active -> returned -> cancelled)."""
     new_status = request.form.get("status")
-    valid = {"pending", "confirmed", "active", "returned", "cancelled"}
+    valid = {"pending", "confirmed", "reserved", "active", "returned", "cancelled"}
     if new_status not in valid:
         flash("Invalid rental status specified.", "danger")
         return redirect(url_for("admin.rentals_list"))

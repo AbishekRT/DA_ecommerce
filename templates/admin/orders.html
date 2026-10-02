@@ -66,6 +66,10 @@
               <span class="status-pill status-pill-pending"><i class="bi bi-clock"></i>Pending</span>
             {% elif s == 'confirmed' %}
               <span class="status-pill status-pill-active"><i class="bi bi-check-circle"></i>Confirmed</span>
+            {% elif s == 'processing' %}
+              <span class="status-pill bg-info-subtle text-info border border-info-subtle fw-bold"><i class="bi bi-gear-wide-connected"></i>Processing</span>
+            {% elif s == 'shipped' %}
+              <span class="status-pill bg-primary-subtle text-primary border border-primary-subtle fw-bold"><i class="bi bi-truck"></i>Shipped</span>
             {% elif s == 'completed' %}
               <span class="status-pill status-pill-completed"><i class="bi bi-check-all"></i>Completed</span>
             {% elif s == 'cancelled' %}
@@ -82,8 +86,8 @@
           <td class="text-end">
             <form method="POST" action="{{ url_for('admin.update_order_status', order_id=order._id | string) }}"
                   class="d-inline-flex gap-1 justify-content-end">
-              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 130px; font-size: 0.8rem;">
-                {% for status in ['pending', 'confirmed', 'completed', 'cancelled'] %}
+              <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 140px; font-size: 0.8rem;">
+                {% for status in ['pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'] %}
                 <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>
                   {{ status | title }}
                 </option>
