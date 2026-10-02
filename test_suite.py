@@ -7,6 +7,7 @@ Run with:  python test_suite.py
 """
 
 import unittest
+import re
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -717,6 +718,72 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Invalid status specified", res_bad.data)
 
         self.log_result("TC-22", "Expanded Status Validation Sets", "PASS", "All 6 order/rental lifecycle statuses accepted; invalid statuses rejected.")
+
+    # -----------------------------------------------------------------------
+    # TC-23: CSRF Protection - Missing Token Rejection
+    # -----------------------------------------------------------------------
+    def test_23_csrf_missing_token_rejection(self):
+        """TC-23: Verify POST /login without CSRF token triggers CSRFError protection when WTF_CSRF_ENABLED=True"""
+        csrf_app = create_app()
+        csrf_app.config["TESTING"] = True
+        csrf_app.config["WTF_CSRF_ENABLED"] = True
+        csrf_client = csrf_app.test_client()
+
+        # POST without token
+        res_no_token = csrf_client.post("/login", data={
+            "email": "alice@example.com",
+            "password": "Alice#Pass2026$"
+        }, follow_redirects=True)
+        self.assertEqual(res_no_token.status_code, 200)
+        self.assertIn(b"Your security session expired or the form submission was invalid", res_no_token.data)
+        self.log_result("TC-23", "CSRF Missing Token Rejection", "PASS", "POST without CSRF token intercepted by handle_csrf_error and flashed friendly warning.")
+
+    # -----------------------------------------------------------------------
+    # TC-24: CSRF Protection - Valid Token Submission
+    # -----------------------------------------------------------------------
+    def test_24_csrf_valid_token_submission(self):
+        """TC-24: Verify POST /login with valid page-extracted CSRF token successfully logs in"""
+        csrf_app = create_app()
+        csrf_app.config["TESTING"] = True
+        csrf_app.config["WTF_CSRF_ENABLED"] = True
+        csrf_client = csrf_app.test_client()
+
+        # 1. Fetch login page to generate session and extract CSRF token
+        res_page = csrf_client.get("/login")
+        token_match = re.search(r'name="csrf_token" value="([^"]+)"', res_page.data.decode("utf-8"))
+        self.assertIsNotNone(token_match, "CSRF token input field not found on /login page")
+        token = token_match.group(1)
+
+        # 2. Submit login with valid token
+        res_login = csrf_client.post("/login", data={
+            "email": "alice@example.com",
+            "password": "Alice#Pass2026$",
+            "csrf_token": token
+        }, follow_redirects=True)
+        self.assertEqual(res_login.status_code, 200)
+        self.assertIn(b"Sign Out", res_login.data)
+        self.log_result("TC-24", "CSRF Valid Token Authentication", "PASS", "POST with extracted form csrf_token successfully authenticated and created session.")
+
+    # -----------------------------------------------------------------------
+    # TC-25: CSRF Protection - Admin Route Token Enforcement
+    # -----------------------------------------------------------------------
+    def test_25_csrf_admin_post_rejection(self):
+        """TC-25: Verify administrative state changes reject POST requests lacking CSRF token"""
+        csrf_app = create_app()
+        csrf_app.config["TESTING"] = True
+        csrf_app.config["WTF_CSRF_ENABLED"] = True
+        csrf_client = csrf_app.test_client()
+
+        order = orders_col.find_one()
+        self.assertIsNotNone(order)
+
+        # Attempt status update without CSRF token
+        res_admin = csrf_client.post(f"/admin/orders/{order['_id']}/status", data={
+            "status": "completed"
+        }, follow_redirects=True)
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertIn(b"Your security session expired or the form submission was invalid", res_admin.data)
+        self.log_result("TC-25", "CSRF Admin Route Enforcement", "PASS", "Admin order status POST without CSRF token rejected with security handler.")
 
     @classmethod
     def tearDownClass(cls):
