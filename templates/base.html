@@ -128,7 +128,6 @@
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.users_list') }}"><i class="bi bi-people me-2 text-primary"></i>User Directory</a></li>
               {% elif current_user.role == 'staff' %}
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.rentals_list') }}"><i class="bi bi-calendar-range me-2 text-info"></i>Rental Operations</a></li>
-              <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('admin.users_list') }}"><i class="bi bi-people me-2 text-primary"></i>User Directory</a></li>
               {% else %}
               <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url_for('customer.order_history') }}"><i class="bi bi-bag-check me-2 text-primary"></i>My Orders &amp; Rentals</a></li>
               {% endif %}

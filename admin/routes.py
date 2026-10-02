@@ -347,11 +347,11 @@ def update_rental_status(rental_id):
 
 
 # ===========================================================================
-# USER DIRECTORY (Admin & Staff)
+# USER DIRECTORY (Admin Only)
 # ===========================================================================
 @admin_bp.route("/users")
 @login_required
-@role_required("admin", "staff")
+@role_required("admin")
 def users_list():
     """All registered user accounts and RBAC roles."""
     users = list(users_col.find().sort("created_at", -1))
