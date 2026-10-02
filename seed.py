@@ -693,7 +693,7 @@ def seed_orders(user_ids, product_ids):
 
     order_configs = [
         (4, [0], 389900.00, 30, "completed"),
-        (5, [3, 1], 869700.00, 27, "completed"),
+        (5, [3, 1], 689800.00, 27, "completed"),
         (6, [6], 899900.00, 25, "completed"),
         (7, [16], 539900.00, 22, "completed"),
         (8, [9], 469900.00, 20, "shipped"),
@@ -712,7 +712,7 @@ def seed_orders(user_ids, product_ids):
         (9, [18, 19], 315800.00, 1, "pending"),
     ]
 
-    for uid_idx, p_indices, total_amt, days_ago, status in order_configs:
+    for uid_idx, p_indices, _unused_amt, days_ago, status in order_configs:
         uid = user_ids[uid_idx] if uid_idx < len(user_ids) else user_ids[4]
         items = []
         for p_idx in p_indices:
@@ -726,11 +726,13 @@ def seed_orders(user_ids, product_ids):
                 "unit_price": price,
                 "subtotal": price,
             })
+        order_total = sum(item["subtotal"] for item in items)
         orders.append({
             "user_id": uid,
             "items": items,
-            "total": total_amt,
+            "total": order_total,
             "status": status,
+            "stock_deducted": False,
             "created_at": now - timedelta(days=days_ago),
         })
 
