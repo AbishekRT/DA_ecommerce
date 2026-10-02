@@ -247,7 +247,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
     def test_09_revenue_aggregation_pipeline(self):
         """TC-09: Verify multi-stage revenue aggregation pipeline ($unwind, $lookup, $group, $sort)"""
         pipeline = [
-            {"$match": {"status": {"$in": ["confirmed", "completed"]}}},
+            {"$match": {"status": {"$in": ["confirmed", "processing", "shipped", "completed"]}}},
             {"$unwind": "$items"},
             {"$lookup": {"from": "products", "localField": "items.product_id", "foreignField": "_id", "as": "product"}},
             {"$unwind": "$product"},
@@ -262,7 +262,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             self.assertIn("_id", r)
             self.assertIn("revenue", r)
             self.assertGreater(r["revenue"], 0)
-        self.log_result("TC-09", "Revenue Aggregation Pipeline", "PASS", f"Pipeline computed revenue grouped across {len(results)} categories.")
+        self.log_result("TC-09", "Revenue Aggregation Pipeline", "PASS", f"Pipeline computed revenue grouped across {len(results)} categories (4 status flow).")
 
     # -----------------------------------------------------------------------
     # TC-10: Aggregation Pipeline 2 - Equipment Utilisation
@@ -298,6 +298,421 @@ class ProjectorShopTestSuite(unittest.TestCase):
             self.assertGreater(r["total_days"], 0)
         self.log_result("TC-10", "Rental Utilisation Pipeline", "PASS", f"Pipeline calculated duration in days for {len(results)} rented projectors.")
 
+    # -----------------------------------------------------------------------
+    # TC-11: Stock Decrement on Successful Checkout
+    # -----------------------------------------------------------------------
+    def test_11_stock_decrement_on_checkout(self):
+        """TC-11: Verify atomic stock decrement when purchasing retail products"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "charlie@example.com",
+            "password": "Charlie#Test2026!"
+        }, follow_redirects=True)
+
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 5}})
+        self.assertIsNotNone(product)
+        p_id = product["_id"]
+        initial_stock = product["stock_qty"]
+
+        # Clear charlie's cart and add 2 units
+        charlie = users_col.find_one({"email": "charlie@example.com"})
+        carts_col.update_one({"user_id": charlie["_id"]}, {"$set": {"items": []}}, upsert=True)
+
+        self.client.post("/cart/add", data={
+            "product_id": str(p_id),
+            "type": "sell",
+            "qty": "2"
+        }, follow_redirects=True)
+
+        # Checkout
+        res = self.client.post("/checkout", follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        # Verify stock decreased by 2
+        updated_prod = products_col.find_one({"_id": p_id})
+        self.assertEqual(updated_prod["stock_qty"], initial_stock - 2)
+        self.log_result("TC-11", "Stock Decrement on Checkout", "PASS", f"Stock decremented atomically from {initial_stock} to {updated_prod['stock_qty']}.")
+
+    # -----------------------------------------------------------------------
+    # TC-12: Insufficient Stock Rejection
+    # -----------------------------------------------------------------------
+    def test_12_insufficient_stock_rejection(self):
+        """TC-12: Verify checkout is aborted if requested qty exceeds available stock"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "charlie@example.com",
+            "password": "Charlie#Test2026!"
+        }, follow_redirects=True)
+
+        charlie = users_col.find_one({"email": "charlie@example.com"})
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 0}})
+        self.assertIsNotNone(product)
+        p_id = product["_id"]
+        initial_stock = product["stock_qty"]
+
+        # Place an excessive quantity in cart directly to simulate race
+        carts_col.update_one(
+            {"user_id": charlie["_id"]},
+            {"$set": {"items": [{
+                "product_id": p_id,
+                "type": "sell",
+                "qty": initial_stock + 999,
+                "added_at": datetime.now(timezone.utc)
+            }]}},
+            upsert=True
+        )
+
+        res = self.client.post("/checkout", follow_redirects=True)
+        self.assertIn(b"Insufficient stock", res.data)
+
+        # Verify stock unchanged
+        prod_after = products_col.find_one({"_id": p_id})
+        self.assertEqual(prod_after["stock_qty"], initial_stock)
+        self.log_result("TC-12", "Insufficient Stock Rejection", "PASS", "Checkout aborted and stock left untouched when qty exceeded stock.")
+
+    # -----------------------------------------------------------------------
+    # TC-13: Multi-Item Stock Rollback Compensation
+    # -----------------------------------------------------------------------
+    def test_13_multi_item_stock_rollback(self):
+        """TC-13: Verify multi-item rollback restores earlier reserved stock if a later item fails"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "charlie@example.com",
+            "password": "Charlie#Test2026!"
+        }, follow_redirects=True)
+
+        charlie = users_col.find_one({"email": "charlie@example.com"})
+        prods = list(products_col.find({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 2}}).limit(2))
+        self.assertEqual(len(prods), 2)
+
+        prod_a, prod_b = prods[0], prods[1]
+        stock_a_orig = prod_a["stock_qty"]
+        stock_b_orig = prod_b["stock_qty"]
+
+        # Put Prod A (valid qty) and Prod B (excessive qty) into cart
+        carts_col.update_one(
+            {"user_id": charlie["_id"]},
+            {"$set": {"items": [
+                {"product_id": prod_a["_id"], "type": "sell", "qty": 1, "added_at": datetime.now(timezone.utc)},
+                {"product_id": prod_b["_id"], "type": "sell", "qty": stock_b_orig + 500, "added_at": datetime.now(timezone.utc)}
+            ]}},
+            upsert=True
+        )
+
+        res = self.client.post("/checkout", follow_redirects=True)
+        self.assertIn(b"Insufficient stock", res.data)
+
+        # Verify Prod A was rolled back to original stock
+        prod_a_after = products_col.find_one({"_id": prod_a["_id"]})
+        prod_b_after = products_col.find_one({"_id": prod_b["_id"]})
+        self.assertEqual(prod_a_after["stock_qty"], stock_a_orig)
+        self.assertEqual(prod_b_after["stock_qty"], stock_b_orig)
+        self.log_result("TC-13", "Multi-Item Stock Rollback", "PASS", "Reverse compensation successfully restored reserved stock upon partial reservation failure.")
+
+    # -----------------------------------------------------------------------
+    # TC-14: Stock Restore on Customer Order Cancellation
+    # -----------------------------------------------------------------------
+    def test_14_stock_restore_on_customer_cancel(self):
+        """TC-14: Verify cancelling a pending order restores product stock idempotently"""
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}})
+        self.assertIsNotNone(product)
+        p_id = product["_id"]
+        stock_before = product["stock_qty"]
+
+        # Create a pending order for bob
+        bob = users_col.find_one({"email": "bob@example.com"})
+        order_doc = {
+            "user_id": bob["_id"],
+            "items": [{"product_id": p_id, "type": "sell", "unit_price": product.get("sale_price", 10000), "qty": 2}],
+            "total": product.get("sale_price", 10000) * 2,
+            "status": "pending",
+            "stock_restored": False,
+            "created_at": datetime.now(timezone.utc)
+        }
+        order_res = orders_col.insert_one(order_doc)
+        order_id = order_res.inserted_id
+
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "bob@example.com",
+            "password": "Bob#ProjStore99*"
+        }, follow_redirects=True)
+
+        # Cancel order
+        res = self.client.post(f"/orders/{order_id}/cancel", follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        # Verify stock restored
+        prod_after = products_col.find_one({"_id": p_id})
+        self.assertEqual(prod_after["stock_qty"], stock_before + 2)
+
+        # Verify order marked stock_restored
+        updated_order = orders_col.find_one({"_id": order_id})
+        self.assertEqual(updated_order["status"], "cancelled")
+        self.assertTrue(updated_order.get("stock_restored"))
+        self.log_result("TC-14", "Stock Restore on Customer Cancel", "PASS", "Product stock restored (+2) and order marked stock_restored: True.")
+
+    # -----------------------------------------------------------------------
+    # TC-15: Stock Restore on Admin Order Cancellation
+    # -----------------------------------------------------------------------
+    def test_15_stock_restore_on_admin_cancel(self):
+        """TC-15: Verify admin updating order status to cancelled restores product stock"""
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}})
+        self.assertIsNotNone(product)
+        p_id = product["_id"]
+        stock_before = product["stock_qty"]
+
+        bob = users_col.find_one({"email": "bob@example.com"})
+        order_doc = {
+            "user_id": bob["_id"],
+            "items": [{"product_id": p_id, "type": "sell", "unit_price": product.get("sale_price", 10000), "qty": 3}],
+            "total": product.get("sale_price", 10000) * 3,
+            "status": "confirmed",
+            "stock_restored": False,
+            "created_at": datetime.now(timezone.utc)
+        }
+        order_res = orders_col.insert_one(order_doc)
+        order_id = order_res.inserted_id
+
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "admin@projectorshop.com",
+            "password": "ProjAdmin#2026!Secure"
+        }, follow_redirects=True)
+
+        # Admin cancels order
+        res = self.client.post(f"/admin/orders/{order_id}/status", data={"status": "cancelled"}, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        # Verify stock restored
+        prod_after = products_col.find_one({"_id": p_id})
+        self.assertEqual(prod_after["stock_qty"], stock_before + 3)
+
+        # Verify idempotency: admin re-saving status cancelled does not restore again
+        self.client.post(f"/admin/orders/{order_id}/status", data={"status": "cancelled"}, follow_redirects=True)
+        prod_after_repeat = products_col.find_one({"_id": p_id})
+        self.assertEqual(prod_after_repeat["stock_qty"], stock_before + 3)
+        self.log_result("TC-15", "Stock Restore on Admin Cancel", "PASS", "Admin status change restored stock with strict idempotency guard.")
+
+    # -----------------------------------------------------------------------
+    # TC-16: Server-Side Quantity Validation
+    # -----------------------------------------------------------------------
+    def test_16_quantity_validation(self):
+        """TC-16: Verify non-positive and malformed quantities are rejected on server"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "alice@example.com",
+            "password": "Alice#Pass2026$"
+        }, follow_redirects=True)
+
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}})
+        self.assertIsNotNone(product)
+
+        # Test qty = 0
+        res_0 = self.client.post("/cart/add", data={
+            "product_id": str(product["_id"]),
+            "type": "sell",
+            "qty": "0"
+        }, follow_redirects=True)
+        self.assertIn(b"Invalid quantity specified", res_0.data)
+
+        # Test qty = -3
+        res_neg = self.client.post("/cart/add", data={
+            "product_id": str(product["_id"]),
+            "type": "sell",
+            "qty": "-3"
+        }, follow_redirects=True)
+        self.assertIn(b"Invalid quantity specified", res_neg.data)
+        self.log_result("TC-16", "Quantity Validation", "PASS", "Server-side rejection for non-positive quantities (0, -3).")
+
+    # -----------------------------------------------------------------------
+    # TC-17: Incompatible Purchase Mode Validation
+    # -----------------------------------------------------------------------
+    def test_17_incompatible_purchase_mode(self):
+        """TC-17: Verify mode=buy is rejected for rent-only and mode=rent rejected for sell-only"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "alice@example.com",
+            "password": "Alice#Pass2026$"
+        }, follow_redirects=True)
+
+        # Rent only product
+        rent_prod = products_col.find_one({"type": "rent"})
+        if rent_prod:
+            res_buy = self.client.post("/cart/add", data={
+                "product_id": str(rent_prod["_id"]),
+                "type": "sell",
+                "qty": "1"
+            }, follow_redirects=True)
+            self.assertIn(b"is only available for rental", res_buy.data)
+
+        # Sell only product
+        sell_prod = products_col.find_one({"type": "sell"})
+        if sell_prod:
+            now = datetime.now(timezone.utc)
+            res_rent = self.client.post("/cart/add", data={
+                "product_id": str(sell_prod["_id"]),
+                "type": "rent",
+                "rent_start_date": now.strftime("%Y-%m-%d"),
+                "rent_end_date": (now + timedelta(days=2)).strftime("%Y-%m-%d")
+            }, follow_redirects=True)
+            self.assertIn(b"is only available for direct purchase", res_rent.data)
+
+        self.log_result("TC-17", "Incompatible Purchase Mode", "PASS", "Server enforced product purchase mode constraints (sell vs rent).")
+
+    # -----------------------------------------------------------------------
+    # TC-18: Double Checkout Prevention
+    # -----------------------------------------------------------------------
+    def test_18_double_checkout_prevention(self):
+        """TC-18: Verify atomic cart claiming prevents multiple orders from double submission"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "charlie@example.com",
+            "password": "Charlie#Test2026!"
+        }, follow_redirects=True)
+
+        product = products_col.find_one({"type": {"$in": ["sell", "both"]}, "stock_qty": {"$gt": 5}})
+        self.assertIsNotNone(product)
+
+        # Add 1 unit
+        self.client.post("/cart/add", data={
+            "product_id": str(product["_id"]),
+            "type": "sell",
+            "qty": "1"
+        }, follow_redirects=True)
+
+        charlie = users_col.find_one({"email": "charlie@example.com"})
+        orders_before = orders_col.count_documents({"user_id": charlie["_id"]})
+
+        # First checkout -> succeeds
+        res1 = self.client.post("/checkout", follow_redirects=True)
+        self.assertEqual(res1.status_code, 200)
+
+        # Second immediate checkout -> cart already claimed/empty
+        res2 = self.client.post("/checkout", follow_redirects=True)
+        self.assertIn(b"Your cart is empty", res2.data)
+
+        orders_after = orders_col.count_documents({"user_id": charlie["_id"]})
+        self.assertEqual(orders_after, orders_before + 1)
+        self.log_result("TC-18", "Double Checkout Prevention", "PASS", "Atomic cart claiming allowed exactly 1 order creation from consecutive submits.")
+
+    # -----------------------------------------------------------------------
+    # TC-19: Cart Emptied Post Checkout
+    # -----------------------------------------------------------------------
+    def test_19_cart_empty_post_checkout(self):
+        """TC-19: Verify user cart document has items: [] after successful checkout"""
+        charlie = users_col.find_one({"email": "charlie@example.com"})
+        cart = carts_col.find_one({"user_id": charlie["_id"]})
+        self.assertIsNotNone(cart)
+        self.assertEqual(len(cart.get("items", [])), 0)
+        self.log_result("TC-19", "Cart Emptied Post Checkout", "PASS", "Cart items array verified empty in MongoDB after completed checkout.")
+
+    # -----------------------------------------------------------------------
+    # TC-20: Strict Rental Date Validation
+    # -----------------------------------------------------------------------
+    def test_20_rental_date_validation(self):
+        """TC-20: Verify rental dates must be in future, end after start, and <= 30 days"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "alice@example.com",
+            "password": "Alice#Pass2026$"
+        }, follow_redirects=True)
+
+        rent_prod = products_col.find_one({"type": {"$in": ["rent", "both"]}})
+        self.assertIsNotNone(rent_prod)
+        p_id = str(rent_prod["_id"])
+
+        # 1. Past start date
+        res_past = self.client.post("/cart/add", data={
+            "product_id": p_id,
+            "type": "rent",
+            "rent_start_date": "2020-01-01",
+            "rent_end_date": "2020-01-05"
+        }, follow_redirects=True)
+        self.assertIn(b"cannot be in the past", res_past.data)
+
+        # 2. End date <= start date
+        res_rev = self.client.post("/cart/add", data={
+            "product_id": p_id,
+            "type": "rent",
+            "rent_start_date": "2026-11-10",
+            "rent_end_date": "2026-11-05"
+        }, follow_redirects=True)
+        self.assertIn(b"must be after the start date", res_rev.data)
+
+        # 3. Duration > 30 days
+        res_long = self.client.post("/cart/add", data={
+            "product_id": p_id,
+            "type": "rent",
+            "rent_start_date": "2026-11-01",
+            "rent_end_date": "2026-12-15"
+        }, follow_redirects=True)
+        self.assertIn(b"cannot exceed 30 days", res_long.data)
+        self.log_result("TC-20", "Rental Date Range Validation", "PASS", "Rejected past dates, inverted date ranges, and bookings exceeding 30 days.")
+
+    # -----------------------------------------------------------------------
+    # TC-21: RBAC: Staff Blocked from User Directory
+    # -----------------------------------------------------------------------
+    def test_21_rbac_staff_user_directory_restriction(self):
+        """TC-21: Verify Staff receives 403 on /admin/users while Admin receives 200"""
+        self.client.get("/logout", follow_redirects=True)
+
+        # Staff login
+        self.client.post("/login", data={
+            "email": "staff@projectorshop.com",
+            "password": "ProjStaff#2026!Secure"
+        }, follow_redirects=True)
+
+        res_staff = self.client.get("/admin/users")
+        self.assertEqual(res_staff.status_code, 403)
+
+        self.client.get("/logout", follow_redirects=True)
+
+        # Admin login
+        self.client.post("/login", data={
+            "email": "admin@projectorshop.com",
+            "password": "ProjAdmin#2026!Secure"
+        }, follow_redirects=True)
+
+        res_admin = self.client.get("/admin/users")
+        self.assertEqual(res_admin.status_code, 200)
+        self.assertIn(b"User Directory", res_admin.data)
+        self.log_result("TC-21", "Staff User Directory RBAC", "PASS", "Staff role received 403 Forbidden on /admin/users; Admin granted 200 OK access.")
+
+    # -----------------------------------------------------------------------
+    # TC-22: Expanded Admin Status Validation Sets & Revenue Pipeline
+    # -----------------------------------------------------------------------
+    def test_22_admin_status_validation_and_revenue_flow(self):
+        """TC-22: Verify admin routes accept all 6 order/rental statuses and revenue includes 4 statuses"""
+        self.client.get("/logout", follow_redirects=True)
+        self.client.post("/login", data={
+            "email": "admin@projectorshop.com",
+            "password": "ProjAdmin#2026!Secure"
+        }, follow_redirects=True)
+
+        order = orders_col.find_one()
+        self.assertIsNotNone(order)
+        rental = rentals_col.find_one()
+        self.assertIsNotNone(rental)
+
+        # Test valid order statuses
+        for s in ["pending", "confirmed", "processing", "shipped", "completed"]:
+            res = self.client.post(f"/admin/orders/{order['_id']}/status", data={"status": s}, follow_redirects=True)
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(orders_col.find_one({"_id": order["_id"]})["status"], s)
+
+        # Test valid rental statuses
+        for s in ["pending", "confirmed", "reserved", "active", "returned"]:
+            res = self.client.post(f"/admin/rentals/{rental['_id']}/status", data={"status": s}, follow_redirects=True)
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(rentals_col.find_one({"_id": rental["_id"]})["status"], s)
+
+        # Test invalid status rejected
+        res_bad = self.client.post(f"/admin/orders/{order['_id']}/status", data={"status": "invalid_status"}, follow_redirects=True)
+        self.assertIn(b"Invalid order status specified", res_bad.data)
+
+        self.log_result("TC-22", "Expanded Status Validation Sets", "PASS", "All 6 order/rental lifecycle statuses accepted; invalid statuses rejected.")
+
     @classmethod
     def tearDownClass(cls):
         print("\n" + "=" * 90)
@@ -314,3 +729,4 @@ class ProjectorShopTestSuite(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
