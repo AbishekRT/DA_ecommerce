@@ -86,6 +86,7 @@
           <td class="text-end">
             <form method="POST" action="{{ url_for('admin.update_order_status', order_id=order._id | string) }}"
                   class="d-inline-flex gap-1 justify-content-end">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <select name="status" class="form-select form-select-sm rounded-2 shadow-none border" style="width: 140px; font-size: 0.8rem;">
                 {% for status in ['pending', 'confirmed', 'processing', 'shipped', 'completed', 'cancelled'] %}
                 <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>

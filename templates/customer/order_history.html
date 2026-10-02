@@ -64,6 +64,7 @@
             <td class="text-end">
               {% if order.status == 'pending' %}
               <form method="POST" action="{{ url_for('customer.cancel_order', order_id=order._id | string) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"
                         onclick="return confirm('Cancel this order?')">
                   <i class="bi bi-x-circle me-1"></i>Cancel
@@ -136,6 +137,7 @@
             <td class="text-end">
               {% if rental.status == 'pending' %}
               <form method="POST" action="{{ url_for('customer.cancel_rental', rental_id=rental._id | string) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"
                         onclick="return confirm('Cancel this rental booking?')">
                   <i class="bi bi-x-circle me-1"></i>Cancel

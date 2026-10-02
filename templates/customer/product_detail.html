@@ -118,6 +118,7 @@
             <span class="text-muted small" style="font-size: 0.75rem;">Fast Island-wide Delivery</span>
           </div>
           <form method="POST" action="{{ url_for('customer.add_to_cart') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <input type="hidden" name="product_id" value="{{ product._id | string }}" />
             <input type="hidden" name="type" value="sell" />
             <div class="row g-2 align-items-center">
@@ -152,6 +153,7 @@
             <span class="text-muted small" style="font-size: 0.75rem;">Instant Reservation</span>
           </div>
           <form method="POST" action="{{ url_for('customer.add_to_cart') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <input type="hidden" name="product_id" value="{{ product._id | string }}" />
             <input type="hidden" name="type" value="rent" />
             <div class="row g-2 mb-2">

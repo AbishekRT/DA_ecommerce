@@ -3,11 +3,14 @@ app.py
 Flask application factory with registered Blueprints and Custom Error Handlers (403, 404, 500).
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for, flash, request
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 import os
 
 load_dotenv()   # load .env before anything else
+
+csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__)
@@ -16,10 +19,12 @@ def create_app():
     # ------------------------------------------------------------------
     # Initialise extensions
     # ------------------------------------------------------------------
+    csrf.init_app(app)
+
     from extensions import login_manager
     login_manager.init_app(app)
 
-    # User loader — Flask-Login calls this on every request to rebuild
+    # User loader - Flask-Login calls this on every request to rebuild
     # current_user from the session cookie's stored user id.
     from extensions import users_col
     from bson import ObjectId
@@ -65,6 +70,11 @@ def create_app():
     # ------------------------------------------------------------------
     # Custom Error Handlers (Industrial Grade 403, 404, 500 Pages)
     # ------------------------------------------------------------------
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        flash("Your security session expired or the form submission was invalid. Please try again.", "danger")
+        return redirect(request.referrer or url_for("customer.catalog"))
+
     @app.errorhandler(403)
     def forbidden_error(error):
         return render_template("403.html"), 403

@@ -5,3 +5,4 @@ Werkzeug==3.0.3
 python-dotenv==1.0.1
 certifi>=2024.2.2
 dnspython>=2.6.1
+Flask-WTF==1.2.1

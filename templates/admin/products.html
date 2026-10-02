@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Products : Admin{% endblock %}
 
 {% block content %}
@@ -55,6 +55,7 @@
           </a>
           <form method="POST" action="{{ url_for('admin.product_delete', product_id=product._id | string) }}"
                 class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button type="submit" class="btn btn-sm btn-outline-danger"
                     onclick="return confirm('Delete {{ product.name }}? This cannot be undone.')">
               <i class="bi bi-trash"></i>

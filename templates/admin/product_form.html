@@ -17,6 +17,7 @@
     <form method="POST"
           action="{{ url_for('admin.product_edit', product_id=product._id | string) if product else url_for('admin.product_create') }}"
           novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
       <div class="row g-3">
         <!-- Name -->
