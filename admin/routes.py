@@ -48,7 +48,7 @@ def dashboard():
     Financial & System Summary Dashboard.
     Restricted to 'admin' role. Staff are directed to operational views.
     """
-    total_products  = products_col.count_documents({})
+    total_products  = products_col.count_documents({"is_active": {"$ne": False}})
     total_orders    = orders_col.count_documents({})
     total_rentals   = rentals_col.count_documents({})
     total_customers = users_col.count_documents({"role": "customer"})
@@ -68,7 +68,7 @@ def dashboard():
                 "as": "product",
             }
         },
-        {"$unwind": "$product"},
+        {"$unwind": {"path": "$product", "preserveNullAndEmptyArrays": True}},
         {
             "$lookup": {
                 "from": "categories",
@@ -77,7 +77,7 @@ def dashboard():
                 "as": "category",
             }
         },
-        {"$unwind": "$category"},
+        {"$unwind": {"path": "$category", "preserveNullAndEmptyArrays": True}},
         {
             "$group": {
                 "_id": "$category.name",
@@ -159,7 +159,7 @@ def dashboard():
 @role_required("admin", "staff")
 def products_list():
     """Lists all products with resolved category names."""
-    products = list(products_col.find().sort("created_at", -1))
+    products = list(products_col.find({"is_active": {"$ne": False}}).sort("created_at", -1))
     categories = {str(c["_id"]): c["name"] for c in categories_col.find()}
     return render_template(
         "admin/products.html",
@@ -180,6 +180,24 @@ def product_create():
 
     if request.method == "POST":
         f = request.form
+        
+        p_type = f.get("type")
+        s_price = float(f.get("sale_price") or 0)
+        r_price = float(f.get("rent_price_per_day") or 0)
+        try:
+            stock_qty = int(f.get("stock_qty", 0) or 0)
+        except (ValueError, TypeError):
+            stock_qty = -1
+        if stock_qty < 0:
+            flash("Stock cannot be negative.", "danger")
+            return redirect(url_for("admin.product_create"))
+        if p_type in ["sell", "both"] and s_price <= 0:
+            flash("Sale price must be strictly positive.", "danger")
+            return redirect(url_for("admin.product_create"))
+        if p_type in ["rent", "both"] and r_price <= 0:
+            flash("Rent price must be strictly positive.", "danger")
+            return redirect(url_for("admin.product_create"))
+
         connectivity = [c.strip() for c in f.get("connectivity", "").split(",") if c.strip()]
 
         product_doc = {
@@ -189,7 +207,7 @@ def product_create():
             "type":        f.get("type"),
             "sale_price":  float(f.get("sale_price") or 0) or None,
             "rent_price_per_day": float(f.get("rent_price_per_day") or 0) or None,
-            "stock_qty":   int(f.get("stock_qty", 0)),
+            "stock_qty":   stock_qty,
             "image_url":   f.get("image_url", "").strip(),
             "description": f.get("description", "").strip(),
             "specs": {
@@ -223,6 +241,24 @@ def product_edit(product_id):
 
     if request.method == "POST":
         f = request.form
+        
+        p_type = f.get("type")
+        s_price = float(f.get("sale_price") or 0)
+        r_price = float(f.get("rent_price_per_day") or 0)
+        try:
+            stock_qty = int(f.get("stock_qty", 0) or 0)
+        except (ValueError, TypeError):
+            stock_qty = -1
+        if stock_qty < 0:
+            flash("Stock cannot be negative.", "danger")
+            return redirect(url_for("admin.product_edit", product_id=product_id))
+        if p_type in ["sell", "both"] and s_price <= 0:
+            flash("Sale price must be strictly positive.", "danger")
+            return redirect(url_for("admin.product_edit", product_id=product_id))
+        if p_type in ["rent", "both"] and r_price <= 0:
+            flash("Rent price must be strictly positive.", "danger")
+            return redirect(url_for("admin.product_edit", product_id=product_id))
+
         connectivity = [c.strip() for c in f.get("connectivity", "").split(",") if c.strip()]
 
         products_col.update_one(
@@ -234,15 +270,13 @@ def product_edit(product_id):
                 "type":        f.get("type"),
                 "sale_price":  float(f.get("sale_price") or 0) or None,
                 "rent_price_per_day": float(f.get("rent_price_per_day") or 0) or None,
-                "stock_qty":   int(f.get("stock_qty", 0)),
+                "stock_qty":   stock_qty,
                 "image_url":   f.get("image_url", "").strip(),
                 "description": f.get("description", "").strip(),
-                "specs": {
-                    "resolution":        f.get("resolution", "").strip(),
-                    "brightness_lumens": int(f.get("brightness_lumens") or 0),
-                    "throw_distance":    f.get("throw_distance", "").strip(),
-                    "connectivity":      connectivity,
-                },
+                "specs.resolution":        f.get("resolution", "").strip(),
+                "specs.brightness_lumens": int(f.get("brightness_lumens") or 0),
+                "specs.throw_distance":    f.get("throw_distance", "").strip(),
+                "specs.connectivity":      connectivity,
             }},
         )
         flash("Product updated successfully.", "success")
@@ -259,7 +293,7 @@ def product_edit(product_id):
 @role_required("admin")
 def product_delete(product_id):
     """Hard delete a product document. Restricted to Admin."""
-    products_col.delete_one({"_id": _oid(product_id)})
+    products_col.update_one({"_id": _oid(product_id)}, {"$set": {"is_active": False}})
     flash("Product deleted from catalog.", "warning")
     return redirect(url_for("admin.products_list"))
 
@@ -293,6 +327,10 @@ def update_order_status(order_id):
     order = orders_col.find_one({"_id": _oid(order_id)})
     if not order:
         flash("Order not found.", "danger")
+        return redirect(url_for("admin.orders_list"))
+
+    if order.get("status") == "cancelled" and new_status != "cancelled":
+        flash("Cannot modify an order that has already been cancelled.", "danger")
         return redirect(url_for("admin.orders_list"))
 
     if new_status == "cancelled" and order.get("status") != "cancelled":
@@ -338,8 +376,25 @@ def update_rental_status(rental_id):
         flash("Invalid rental status specified.", "danger")
         return redirect(url_for("admin.rentals_list"))
 
+    rental = rentals_col.find_one({"_id": _oid(rental_id)})
+    if not rental:
+        flash("Rental not found.", "danger")
+        return redirect(url_for("admin.rentals_list"))
+
+    if new_status in ["pending", "confirmed", "active", "reserved"]:
+        conflict = rentals_col.find_one({
+            "_id": {"$ne": rental["_id"]},
+            "product_id": rental["product_id"],
+            "status": {"$in": ["pending", "confirmed", "active", "reserved"]},
+            "start_date": {"$lt": rental["end_date"]},
+            "end_date": {"$gt": rental["start_date"]}
+        })
+        if conflict:
+            flash("Cannot update status: Dates conflict with an existing booking.", "danger")
+            return redirect(url_for("admin.rentals_list"))
+
     rentals_col.update_one(
-        {"_id": _oid(rental_id)},
+        {"_id": rental["_id"]},
         {"$set": {"status": new_status}},
     )
     flash(f"Rental status updated to '{new_status}'.", "success")

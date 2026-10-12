@@ -53,18 +53,18 @@
           </td>
           <td>
             {% if item.type == 'sell' %}
-              <span class="badge badge-sale">Purchase</span>
+              <span class="badge badge-sale border" style="color: #000000 !important; background-color: #f1f5f9 !important; font-weight: 700;">Purchase</span>
             {% else %}
-              <span class="badge badge-rent">Rental</span>
+              <span class="badge badge-rent border" style="color: #000000 !important; background-color: #eff6ff !important; font-weight: 700;">Rental</span>
             {% endif %}
           </td>
           <td class="fw-semibold">{{ item.qty }}</td>
           <td>
             {% if item.type == 'rent' %}
-              <div class="small fw-semibold text-primary"><i class="bi bi-calendar-range me-1"></i>{{ item.rent_start_date }} to {{ item.rent_end_date }}</div>
+              <div class="small fw-semibold text-primary"><i class="bi bi-calendar-range me-1"></i>{{ item.rent_start_date.strftime('%d %b %Y') if item.rent_start_date.strftime is defined else item.rent_start_date }} &rarr; {{ item.rent_end_date.strftime('%d %b %Y') if item.rent_end_date.strftime is defined else item.rent_end_date }}</div>
               <span class="badge bg-light text-muted border small">{{ row.days }} days</span>
             {% else %}
-              <span class="text-muted">:</span>
+              <span class="text-muted">-</span>
             {% endif %}
           </td>
           <td>

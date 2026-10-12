@@ -38,28 +38,47 @@
                 <small class="text-muted">{{ product.brand }}</small>
                 {% if item.type == 'rent' %}
                 <div class="small text-primary mt-1">
-                  <i class="bi bi-calendar-event me-1"></i>{{ item.rent_start_date }} &rarr; {{ item.rent_end_date }}
+                  <i class="bi bi-calendar-event me-1"></i>{{ item.rent_start_date.strftime('%d %b %Y') if item.rent_start_date.strftime is defined else item.rent_start_date }} &rarr; {{ item.rent_end_date.strftime('%d %b %Y') if item.rent_end_date.strftime is defined else item.rent_end_date }}
                 </div>
                 {% endif %}
               </td>
               <td>
                 {% if item.type == 'sell' %}
-                  <span class="badge badge-sale">Purchase</span>
+                  <span class="badge badge-sale border" style="color: #000000 !important; background-color: #f1f5f9 !important; font-weight: 700;">Purchase</span>
                 {% else %}
-                  <span class="badge badge-rent">Rental</span>
+                  <span class="badge badge-rent border" style="color: #000000 !important; background-color: #eff6ff !important; font-weight: 700;">Rental</span>
                 {% endif %}
               </td>
               <td class="text-center fw-semibold">{{ item.qty }}</td>
               <td class="text-end fw-bold text-success">
                 {% if item.type == 'sell' %}
-                  LKR {{ "{:,.0f}".format(product.sale_price * item.qty) }}
+                  LKR {{ "{:,.0f}".format(row.line_subtotal) }}
                 {% else %}
-                  LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} <small class="text-muted">/day</small>
+                  LKR {{ "{:,.0f}".format(row.line_subtotal) }}
+                  <div class="small text-muted fw-normal">({{ row.days }} day{{ 's' if row.days != 1 else '' }} &times; LKR {{ "{:,.0f}".format(product.rent_price_per_day or 0) }})</div>
                 {% endif %}
               </td>
             </tr>
             {% endfor %}
           </tbody>
+          <tfoot>
+            {% if purchases_subtotal > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-semibold text-muted">Purchases Subtotal:</td>
+              <td class="text-end fw-bold text-dark">LKR {{ "{:,.0f}".format(purchases_subtotal) }}</td>
+            </tr>
+            {% endif %}
+            {% if rentals_subtotal > 0 %}
+            <tr>
+              <td colspan="3" class="text-end fw-semibold text-muted">Rentals Subtotal:</td>
+              <td class="text-end fw-bold text-primary">LKR {{ "{:,.0f}".format(rentals_subtotal) }}</td>
+            </tr>
+            {% endif %}
+            <tr class="bg-light">
+              <td colspan="3" class="text-end fw-bold fs-5">Estimated Grand Total:</td>
+              <td class="text-end fw-bold text-success fs-5">LKR {{ "{:,.0f}".format(grand_total) }}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

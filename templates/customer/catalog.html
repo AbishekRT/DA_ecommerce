@@ -85,10 +85,7 @@
              onclick="window.location.href='{{ url_for('customer.product_detail', product_id=product._id | string) }}'">
           
           <!-- Top Tag Badge -->
-          {% if product.type in ['sell', 'both'] %}
-            {% set save_amt = (product.sale_price * 0.15) | round(0) %}
-            <span class="magcubic-badge-save">SAVE RS {{ "{:,.2f}".format(save_amt) }}</span>
-          {% elif product.type == 'rent' %}
+          {% if product.type == 'rent' %}
             <span class="magcubic-badge-save" style="background-color: #2563eb;">FOR RENT</span>
           {% endif %}
 
@@ -129,7 +126,6 @@
           <div class="magcubic-price-box">
             {% if product.type in ['sell', 'both'] %}
               <span class="magcubic-price-red">LKR {{ "{:,.0f}".format(product.sale_price) }}</span>
-              <span class="magcubic-price-strike">LKR {{ "{:,.0f}".format(product.sale_price * 1.15) }}</span>
             {% endif %}
             {% if product.type in ['rent', 'both'] %}
               <div class="magcubic-rent-text">

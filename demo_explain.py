@@ -106,7 +106,7 @@ def run_demo():
         end_str   = (now + timedelta(days=7)).strftime("%Y-%m-%d")
         query_rental = {
             "product_id": prod["_id"],
-            "status":     {"$in": ["confirmed", "active", "reserved"]},
+            "status":     {"$in": ["pending", "confirmed", "active", "reserved"]},
             "start_date": {"$lt": end_str},
             "end_date":   {"$gt": start_str},
         }

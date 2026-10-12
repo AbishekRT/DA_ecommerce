@@ -14,7 +14,7 @@ from pymongo import ReturnDocument
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, abort, session
+    flash, request, abort, session, current_app
 )
 from flask_login import login_required, current_user
 
@@ -93,7 +93,7 @@ def catalog():
     Lists all products with optional filters.
     PyMongo find() with a dynamic query dict — plain and explainable.
     """
-    query = {}
+    query = {"is_active": {"$ne": False}}
 
     # Filter by category (referenced by ObjectId)
     cat_id = request.args.get("category")
@@ -112,11 +112,13 @@ def catalog():
     # Filter by search query (text/regex matching name, brand, description, resolution)
     q = request.args.get("q", "").strip()
     if q:
+        import re
+        q_safe = re.escape(q)
         query["$or"] = [
-            {"name": {"$regex": q, "$options": "i"}},
-            {"brand": {"$regex": q, "$options": "i"}},
-            {"description": {"$regex": q, "$options": "i"}},
-            {"specs.resolution": {"$regex": q, "$options": "i"}},
+            {"name": {"$regex": q_safe, "$options": "i"}},
+            {"brand": {"$regex": q_safe, "$options": "i"}},
+            {"description": {"$regex": q_safe, "$options": "i"}},
+            {"specs.resolution": {"$regex": q_safe, "$options": "i"}},
         ]
 
     # Direct PyMongo find — returns a cursor of product documents
@@ -158,7 +160,7 @@ def product_detail(product_id):
     # EMBED: specs is embedded inside the product document because it is
     # always accessed with the product, has a fixed/bounded size, and is
     # never queried or updated independently.
-    product = products_col.find_one({"_id": _oid(product_id)})
+    product = products_col.find_one({"_id": _oid(product_id), "is_active": {"$ne": False}})
     if not product:
         abort(404)
 
@@ -199,10 +201,10 @@ def compare():
         if oid_list:
             # $in operator matches documents whose _id is in the provided list.
             # This fetches both products in a single round-trip to MongoDB.
-            products = list(products_col.find({"_id": {"$in": oid_list}}))
+            products = list(products_col.find({"_id": {"$in": oid_list}, "is_active": {"$ne": False}}))
 
     # Fetch all products for the selection form
-    all_products = list(products_col.find({}, {"name": 1, "brand": 1}))
+    all_products = list(products_col.find({"is_active": {"$ne": False}}, {"name": 1, "brand": 1}))
 
     return render_template(
         "customer/compare.html",
@@ -277,7 +279,7 @@ def add_to_cart():
     product_id = request.form.get("product_id")
     item_type  = request.form.get("type")       # "sell" or "rent"
 
-    product = products_col.find_one({"_id": _oid(product_id)})
+    product = products_col.find_one({"_id": _oid(product_id), "is_active": {"$ne": False}})
     if not product:
         abort(404)
 
@@ -290,15 +292,18 @@ def add_to_cart():
         return redirect(url_for("customer.product_detail", product_id=product_id))
 
     # Quantity validation
-    try:
-        qty = int(request.form.get("qty", 1))
-    except (ValueError, TypeError):
-        flash("Quantity must be a valid integer.", "danger")
-        return redirect(url_for("customer.product_detail", product_id=product_id))
+    if item_type == "rent":
+        qty = 1
+    else:
+        try:
+            qty = int(request.form.get("qty", 1))
+        except (ValueError, TypeError):
+            flash("Quantity must be a valid integer.", "danger")
+            return redirect(url_for("customer.product_detail", product_id=product_id))
 
-    if qty < 1:
-        flash("Quantity must be at least 1.", "warning")
-        return redirect(url_for("customer.product_detail", product_id=product_id))
+        if qty < 1:
+            flash("Quantity must be at least 1.", "warning")
+            return redirect(url_for("customer.product_detail", product_id=product_id))
 
     if item_type == "sell":
         stock_avail = product.get("stock_qty", 0) or 0
@@ -355,6 +360,8 @@ def add_to_cart():
         upsert=True,
     )
     flash("Item added to cart.", "success")
+    if request.form.get("action") == "buy_now":
+        return redirect(url_for("customer.checkout"))
     return redirect(url_for("customer.view_cart"))
 
 
@@ -414,8 +421,35 @@ def checkout():
         for item in cart["items"]:
             product = products_col.find_one({"_id": item["product_id"]})
             if product:
-                enriched.append({"item": item, "product": product})
-        return render_template("customer/checkout.html", enriched=enriched)
+                qty = item.get("qty", 1)
+                if item["type"] == "sell":
+                    unit_price = product.get("sale_price") or 0
+                    line_subtotal = unit_price * qty
+                    days = None
+                else:
+                    start = item.get("rent_start_date")
+                    end = item.get("rent_end_date")
+                    days = max((end - start).days, 1) if start and end else 1
+                    ppd = product.get("rent_price_per_day") or 0
+                    line_subtotal = ppd * days * qty
+                enriched.append({
+                    "item": item,
+                    "product": product,
+                    "line_subtotal": line_subtotal,
+                    "days": days,
+                })
+
+        purchases_subtotal = sum(r["line_subtotal"] for r in enriched if r["item"]["type"] == "sell")
+        rentals_subtotal = sum(r["line_subtotal"] for r in enriched if r["item"]["type"] == "rent")
+        grand_total = purchases_subtotal + rentals_subtotal
+
+        return render_template(
+            "customer/checkout.html",
+            enriched=enriched,
+            purchases_subtotal=purchases_subtotal,
+            rentals_subtotal=rentals_subtotal,
+            grand_total=grand_total,
+        )
 
     # --- POST: ATOMIC CART CLAIMING (OPTION A) ---
     now = datetime.now(timezone.utc)
@@ -471,7 +505,7 @@ def checkout():
 
         # Step 1: Pre-validate all items
         for item in claimed_items:
-            product = products_col.find_one({"_id": item["product_id"]})
+            product = products_col.find_one({"_id": item["product_id"], "is_active": {"$ne": False}})
             if not product:
                 return rollback_compensation("A product in your cart is no longer available.")
 
@@ -513,7 +547,7 @@ def checkout():
 
                 conflict = rentals_col.find_one({
                     "product_id": item["product_id"],
-                    "status": {"$in": ["confirmed", "active", "reserved"]},
+                    "status": {"$in": ["pending", "confirmed", "active", "reserved"]},
                     "start_date": {"$lt": end_str},
                     "end_date": {"$gt": start_str},
                 })
@@ -565,12 +599,13 @@ def checkout():
             rental_result = rentals_col.insert_many(rental_docs)
             inserted_rental_ids = rental_result.inserted_ids
 
-        flash("Payment successful! Your order has been placed.", "success")
+        flash("Order confirmed. Payment is simulated for this demonstration.", "success")
         return redirect(url_for("customer.order_confirmation",
                                 order_id=str(inserted_order_id) if inserted_order_id else "none"))
 
     except Exception as ex:
-        return rollback_compensation(f"An unexpected error occurred during checkout: {str(ex)}")
+        current_app.logger.exception("Checkout exception: %s", ex)
+        return rollback_compensation("An unexpected error occurred while processing checkout. Please try again.")
 
 
 # ===========================================================================
@@ -581,6 +616,17 @@ def checkout():
 def order_confirmation():
     """Static confirmation page shown after successful checkout."""
     order_id = request.args.get("order_id")
+    if order_id and order_id != "none":
+        try:
+            target_oid = ObjectId(order_id)
+        except (InvalidId, TypeError):
+            return redirect(url_for("customer.order_history"))
+        order = orders_col.find_one({
+            "_id": target_oid,
+            "user_id": ObjectId(current_user.id),
+        })
+        if not order:
+            return redirect(url_for("customer.order_history"))
     return render_template("customer/order_confirmation.html", order_id=order_id)
 
 
