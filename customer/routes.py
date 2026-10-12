@@ -192,19 +192,21 @@ def compare():
     ids = request.args.getlist("ids")
     products = []
 
-    if len(ids) == 2:
+    if ids:
         try:
-            oid_list = [ObjectId(i) for i in ids]
+            oid_list = [ObjectId(i) for i in ids if i]
         except Exception:
             oid_list = []
 
         if oid_list:
             # $in operator matches documents whose _id is in the provided list.
-            # This fetches both products in a single round-trip to MongoDB.
-            products = list(products_col.find({"_id": {"$in": oid_list}, "is_active": {"$ne": False}}))
+            # This fetches selected products in a single round-trip to MongoDB.
+            fetched = list(products_col.find({"_id": {"$in": oid_list}, "is_active": {"$ne": False}}))
+            p_map = {str(p["_id"]): p for p in fetched}
+            products = [p_map[i] for i in ids if i in p_map]
 
-    # Fetch all products for the selection form
-    all_products = list(products_col.find({"is_active": {"$ne": False}}, {"name": 1, "brand": 1}))
+    # Fetch all products for the selection form, alphabetized by name
+    all_products = list(products_col.find({"is_active": {"$ne": False}}, {"name": 1, "brand": 1}).sort("name", 1))
 
     return render_template(
         "customer/compare.html",

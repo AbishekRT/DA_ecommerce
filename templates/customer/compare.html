@@ -14,179 +14,316 @@
   </a>
 </div>
 
-<!-- Selection Bar -->
-<div class="card p-3 mb-4 shadow-sm border-0 rounded-4">
-  <form method="GET" action="{{ url_for('customer.compare') }}" class="row g-3 align-items-end">
-    <div class="col-md-5">
-      <label class="form-label fw-bold text-uppercase small text-muted">First Projector</label>
-      <select name="ids" class="form-select rounded-3">
-        <option value="">Choose Product 1</option>
-        {% for p in all_products %}
-        <option value="{{ p._id | string }}"
-          {% if selected_ids and (p._id | string) == selected_ids[0] %}selected{% endif %}>
-          {{ p.name }} : {{ p.brand }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-5">
-      <label class="form-label fw-bold text-uppercase small text-muted">Second Projector</label>
-      <select name="ids" class="form-select rounded-3">
-        <option value="">Choose Product 2</option>
-        {% for p in all_products %}
-        <option value="{{ p._id | string }}"
-          {% if selected_ids and selected_ids | length > 1 and (p._id | string) == selected_ids[1] %}selected{% endif %}>
-          {{ p.name }} : {{ p.brand }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-md-2">
-      <button type="submit" class="btn btn-primary w-100 rounded-3">
-        <i class="bi bi-arrow-left-right me-1"></i>Compare
-      </button>
+{% set id1 = selected_ids[0] if selected_ids and selected_ids | length > 0 else '' %}
+{% set id2 = selected_ids[1] if selected_ids and selected_ids | length > 1 else '' %}
+
+<!-- Top Selector Box with Centered VS Badge -->
+<div class="card p-4 mb-4 shadow-sm border rounded-4 bg-white position-relative">
+  <form id="compareForm" method="GET" action="{{ url_for('customer.compare') }}">
+    <div class="row align-items-center position-relative g-3">
+      
+      <!-- Product 1 Selector -->
+      <div class="col-md-6 pe-md-4">
+        <label class="form-label text-muted small fw-semibold mb-1">Product 1</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 rounded-start-3 text-muted ps-3">
+            <i class="bi bi-search"></i>
+          </span>
+          <select name="ids" id="prod1Select" class="form-select border-start-0 rounded-end-3 py-2 text-dark fw-medium" onchange="this.form.submit()">
+            <option value="">Select a product...</option>
+            {% for p in all_products %}
+            <option value="{{ p._id | string }}" {% if id1 == (p._id | string) %}selected{% endif %}>
+              {{ p.name }} ({{ p.brand }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if id1 %}
+        <div class="mt-2 ps-1">
+          <a href="{{ url_for('customer.compare', ids=[id2] if id2 else []) }}" class="text-muted text-decoration-none small d-inline-flex align-items-center hover-dark">
+            <i class="bi bi-x-lg me-1 small"></i>Clear
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Center VS Badge -->
+      <div class="position-absolute top-50 start-50 translate-middle d-none d-md-flex align-items-center justify-content-center" style="width: 36px; height: 36px; z-index: 10;">
+        <div class="vs-circle">vs</div>
+      </div>
+
+      <!-- Product 2 Selector -->
+      <div class="col-md-6 ps-md-4">
+        <label class="form-label text-muted small fw-semibold mb-1">Product 2</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0 rounded-start-3 text-muted ps-3">
+            <i class="bi bi-search"></i>
+          </span>
+          <select name="ids" id="prod2Select" class="form-select border-start-0 rounded-end-3 py-2 text-dark fw-medium" onchange="this.form.submit()">
+            <option value="">Select a product...</option>
+            {% for p in all_products %}
+            <option value="{{ p._id | string }}" {% if id2 == (p._id | string) %}selected{% endif %}>
+              {{ p.name }} ({{ p.brand }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if id2 %}
+        <div class="mt-2 ps-1">
+          <a href="{{ url_for('customer.compare', ids=[id1] if id1 else []) }}" class="text-muted text-decoration-none small d-inline-flex align-items-center hover-dark">
+            <i class="bi bi-x-lg me-1 small"></i>Clear
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
     </div>
   </form>
 </div>
 
-<!-- Comparison Table Cards -->
+<!-- Comparison Matrix Table -->
 {% if products | length == 2 %}
 {% set p1 = products[0] %}
 {% set p2 = products[1] %}
+{% set p1_price = p1.sale_price if p1.sale_price else p1.rent_price_per_day %}
+{% set p2_price = p2.sale_price if p2.sale_price else p2.rent_price_per_day %}
 
-<div class="row g-4 mb-5">
-  {% for p in [p1, p2] %}
-  <div class="col-md-6">
-    <div class="card h-100 p-4 border shadow-sm rounded-4 bg-white d-flex flex-column">
+<div class="card shadow-sm border rounded-4 bg-white overflow-hidden mb-5">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 comparison-table">
+      <!-- Product Header Row -->
+      <thead>
+        <tr>
+          <th class="border-0 bg-white" style="width: 22%;"></th>
+          
+          <!-- Product 1 Header Column -->
+          <th class="border-0 border-start text-center p-4 bg-white align-top" style="width: 39%;">
+            <div class="mb-3 d-flex align-items-center justify-content-center mx-auto" style="height: 140px;">
+              {% if p1.image_url %}
+                <img src="{{ p1.image_url }}" alt="{{ p1.name }}" class="img-fluid" style="max-height: 130px; object-fit: contain;" />
+              {% else %}
+                <i class="bi bi-projector fs-1 text-muted"></i>
+              {% endif %}
+            </div>
+            <div class="mb-2">
+              <span class="badge bg-light text-muted border text-uppercase px-2.5 py-1 small">{{ p1.brand }}</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-2 text-center" style="line-height: 1.4; min-height: 2.6rem;">
+              {{ p1.name }}
+            </h6>
+            <div class="text-center">
+              {% if p1.type in ['sell', 'both'] %}
+                <span class="fw-bold text-dark fs-5">LKR {{ "{:,.0f}".format(p1.sale_price) }}</span>
+              {% endif %}
+              {% if p1.type == 'rent' %}
+                <span class="fw-bold text-primary fs-5">LKR {{ "{:,.0f}".format(p1.rent_price_per_day) }} <small class="text-muted fw-normal fs-6">/ day</small></span>
+              {% elif p1.type == 'both' %}
+                <div class="small text-muted mt-1">Rent: LKR {{ "{:,.0f}".format(p1.rent_price_per_day) }} / day</div>
+              {% endif %}
+            </div>
+          </th>
 
-      <!-- Hardware Image -->
-      <div class="mb-3 d-flex align-items-center justify-content-center bg-light rounded-3 p-3" style="height: 200px;">
-        {% if p.image_url %}
-          <img src="{{ p.image_url }}" alt="{{ p.name }}" class="img-fluid" style="max-height: 180px; object-fit: contain;" />
-        {% else %}
-          <i class="bi bi-projector fs-1 text-muted"></i>
-        {% endif %}
-      </div>
+          <!-- Product 2 Header Column -->
+          <th class="border-0 border-start text-center p-4 bg-white align-top" style="width: 39%;">
+            <div class="mb-3 d-flex align-items-center justify-content-center mx-auto" style="height: 140px;">
+              {% if p2.image_url %}
+                <img src="{{ p2.image_url }}" alt="{{ p2.name }}" class="img-fluid" style="max-height: 130px; object-fit: contain;" />
+              {% else %}
+                <i class="bi bi-projector fs-1 text-muted"></i>
+              {% endif %}
+            </div>
+            <div class="mb-2">
+              <span class="badge bg-light text-muted border text-uppercase px-2.5 py-1 small">{{ p2.brand }}</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-2 text-center" style="line-height: 1.4; min-height: 2.6rem;">
+              {{ p2.name }}
+            </h6>
+            <div class="text-center">
+              {% if p2.type in ['sell', 'both'] %}
+                <span class="fw-bold text-dark fs-5">LKR {{ "{:,.0f}".format(p2.sale_price) }}</span>
+              {% endif %}
+              {% if p2.type == 'rent' %}
+                <span class="fw-bold text-primary fs-5">LKR {{ "{:,.0f}".format(p2.rent_price_per_day) }} <small class="text-muted fw-normal fs-6">/ day</small></span>
+              {% elif p2.type == 'both' %}
+                <div class="small text-muted mt-1">Rent: LKR {{ "{:,.0f}".format(p2.rent_price_per_day) }} / day</div>
+              {% endif %}
+            </div>
+          </th>
+        </tr>
+      </thead>
 
-      <!-- Brand Badge -->
-      <div class="text-center mb-1">
-        <span class="badge bg-light text-muted border text-uppercase px-2.5 py-1">{{ p.brand }}</span>
-      </div>
+      <!-- Specifications Rows -->
+      <tbody>
+        <!-- Price Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-top border-bottom">Price</th>
+          <td class="py-3 px-4 text-center border-top border-bottom border-start fw-bold text-dark">
+            {% if p1.type in ['sell', 'both'] %}
+              LKR {{ "{:,.0f}".format(p1.sale_price) }}
+            {% else %}
+              LKR {{ "{:,.0f}".format(p1.rent_price_per_day) }} / day
+            {% endif %}
+          </td>
+          <td class="py-3 px-4 text-center border-top border-bottom border-start fw-bold text-dark {% if p2_price and p1_price and p2_price < p1_price %}comparison-highlight{% endif %}">
+            {% if p2.type in ['sell', 'both'] %}
+              LKR {{ "{:,.0f}".format(p2.sale_price) }}
+            {% else %}
+              LKR {{ "{:,.0f}".format(p2.rent_price_per_day) }} / day
+            {% endif %}
+          </td>
+        </tr>
 
-      <!-- Product Name (Normalized Height) -->
-      <h4 class="fw-bold mb-2 text-dark text-center" style="min-height: 3.25rem; display: flex; align-items: center; justify-content: center; line-height: 1.35;">
-        {{ p.name }}
-      </h4>
+        <!-- Brand Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Brand</th>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark fw-medium">{{ p1.brand }}</td>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark fw-medium">{{ p2.brand }}</td>
+        </tr>
 
-      <!-- Pricing Block (Normalized Height for perfect symmetry) -->
-      <div class="mb-3 text-center" style="min-height: 4rem; display: flex; flex-direction: column; justify-content: center;">
-        {% if p.type in ['sell', 'both'] %}
-          <div class="fw-bold text-danger fs-5">LKR {{ "{:,.0f}".format(p.sale_price) }}</div>
-        {% endif %}
-        {% if p.type in ['rent', 'both'] %}
-          <div class="fw-semibold text-primary small">
-            <i class="bi bi-calendar-event me-1"></i>Rent: LKR {{ "{:,.0f}".format(p.rent_price_per_day) }} / day
-          </div>
-        {% endif %}
-      </div>
+        <!-- Availability Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Availability</th>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p1.type == 'sell' %}
+              <span class="badge badge-sale border" style="color: #000000 !important; background-color: #f1f5f9 !important; font-weight: 700;">For Sale</span>
+            {% elif p1.type == 'rent' %}
+              <span class="badge badge-rent border" style="color: #000000 !important; background-color: #eff6ff !important; font-weight: 700;">For Rent</span>
+            {% else %}
+              <span class="badge badge-hybrid border" style="color: #000000 !important; background-color: #f8fafc !important; font-weight: 700;">Sale &amp; Rent</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p2.type == 'sell' %}
+              <span class="badge badge-sale border" style="color: #000000 !important; background-color: #f1f5f9 !important; font-weight: 700;">For Sale</span>
+            {% elif p2.type == 'rent' %}
+              <span class="badge badge-rent border" style="color: #000000 !important; background-color: #eff6ff !important; font-weight: 700;">For Rent</span>
+            {% else %}
+              <span class="badge badge-hybrid border" style="color: #000000 !important; background-color: #f8fafc !important; font-weight: 700;">Sale &amp; Rent</span>
+            {% endif %}
+          </td>
+        </tr>
 
-      <!-- Action Button (Symmetrically Aligned) -->
-      <div class="mb-4">
-        <a href="{{ url_for('customer.product_detail', product_id=p._id | string) }}" class="btn btn-outline-primary rounded-pill w-100 fw-semibold py-2">
-          View Full Details <i class="bi bi-arrow-right ms-1"></i>
-        </a>
-      </div>
+        <!-- Native Resolution Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Native Resolution</th>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark fw-semibold">
+            {{ p1.specs.resolution if p1.specs and p1.specs.resolution else '-' }}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark fw-semibold">
+            {{ p2.specs.resolution if p2.specs and p2.specs.resolution else '-' }}
+          </td>
+        </tr>
 
-      <!-- Hardware Specifications Section Directly Under Product -->
-      <div class="mt-auto border-top pt-3">
-        <div class="d-flex align-items-center justify-content-between mb-3 px-1">
-          <span class="fw-bold text-dark small text-uppercase" style="letter-spacing: 0.5px;">
-            <i class="bi bi-cpu text-primary me-1"></i>Hardware Specifications
-          </span>
-          <span class="badge bg-light text-muted border small">{{ p.brand }}</span>
-        </div>
+        <!-- Brightness Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Brightness</th>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark">
+            {% if p1.specs and p1.specs.brightness_lumens %}
+              <i class="bi bi-sun text-warning me-1"></i>{{ p1.specs.brightness_lumens }} ANSI Lumens
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start text-dark">
+            {% if p2.specs and p2.specs.brightness_lumens %}
+              <i class="bi bi-sun text-warning me-1"></i>{{ p2.specs.brightness_lumens }} ANSI Lumens
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        </tr>
 
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-            <tbody>
-              <tr>
-                <th style="width: 40%;" class="text-muted fw-semibold py-2.5 ps-2 border-bottom">Availability</th>
-                <td style="width: 60%;" class="text-end py-2.5 pe-2 border-bottom">
-                  {% if p.type == 'sell' %}
-                    <span class="badge badge-sale text-dark border bg-light" style="color: #000000 !important;">For Sale</span>
-                  {% elif p.type == 'rent' %}
-                    <span class="badge badge-rent text-dark border bg-light" style="color: #000000 !important;">For Rent</span>
-                  {% else %}
-                    <span class="badge badge-hybrid text-dark border bg-light" style="color: #000000 !important;">Sale &amp; Rent</span>
-                  {% endif %}
-                </td>
-              </tr>
-              <tr>
-                <th class="text-muted fw-semibold py-2.5 ps-2 border-bottom">Native Resolution</th>
-                <td class="text-end fw-bold text-dark py-2.5 pe-2 border-bottom">
-                  {{ p.specs.resolution if p.specs and p.specs.resolution else 'N/A' }}
-                </td>
-              </tr>
-              <tr>
-                <th class="text-muted fw-semibold py-2.5 ps-2 border-bottom">Brightness</th>
-                <td class="text-end py-2.5 pe-2 border-bottom fw-semibold">
-                  {% if p.specs and p.specs.brightness_lumens %}
-                    <i class="bi bi-sun text-warning me-1"></i>{{ p.specs.brightness_lumens }} ANSI Lumens
-                  {% else %}
-                    N/A
-                  {% endif %}
-                </td>
-              </tr>
-              <tr>
-                <th class="text-muted fw-semibold py-2.5 ps-2 border-bottom">Throw Distance</th>
-                <td class="text-end py-2.5 pe-2 border-bottom text-muted">
-                  {{ p.specs.throw_distance if p.specs and p.specs.throw_distance else 'N/A' }}
-                </td>
-              </tr>
-              <tr>
-                <th class="text-muted fw-semibold py-2.5 ps-2 border-bottom">Connectivity</th>
-                <td class="text-end py-2.5 pe-2 border-bottom">
-                  {% if p.specs and p.specs.connectivity %}
-                    <div class="d-flex flex-wrap gap-1 justify-content-end">
-                      {% for c in p.specs.connectivity %}
-                        <span class="badge bg-light text-dark border" style="font-size: 0.725rem;">{{ c }}</span>
-                      {% endfor %}
-                    </div>
-                  {% else %}
-                    <span class="text-muted">N/A</span>
-                  {% endif %}
-                </td>
-              </tr>
-              <tr>
-                <th class="text-muted fw-semibold py-2.5 ps-2">Stock Status</th>
-                <td class="text-end py-2.5 pe-2">
-                  {% if p.stock_qty and p.stock_qty > 0 %}
-                    <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>In Stock ({{ p.stock_qty }})</span>
-                  {% else %}
-                    <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
-                  {% endif %}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <!-- Throw Distance Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Throw Distance</th>
+          <td class="py-3 px-4 text-center border-bottom border-start text-muted">
+            {{ p1.specs.throw_distance if p1.specs and p1.specs.throw_distance else '-' }}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start text-muted">
+            {{ p2.specs.throw_distance if p2.specs and p2.specs.throw_distance else '-' }}
+          </td>
+        </tr>
 
-    </div>
+        <!-- Connectivity Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Connectivity</th>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p1.specs and p1.specs.connectivity %}
+              <div class="d-flex flex-wrap gap-1 justify-content-center">
+                {% for c in p1.specs.connectivity %}
+                  <span class="badge bg-light text-dark border small">{{ c }}</span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p2.specs and p2.specs.connectivity %}
+              <div class="d-flex flex-wrap gap-1 justify-content-center">
+                {% for c in p2.specs.connectivity %}
+                  <span class="badge bg-light text-dark border small">{{ c }}</span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- Stock Status Row -->
+        <tr>
+          <th class="py-3 px-4 text-muted fw-semibold border-bottom">Stock Status</th>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p1.stock_qty and p1.stock_qty > 0 %}
+              <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>In Stock ({{ p1.stock_qty }})</span>
+            {% else %}
+              <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-4 text-center border-bottom border-start">
+            {% if p2.stock_qty and p2.stock_qty > 0 %}
+              <span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i>In Stock ({{ p2.stock_qty }})</span>
+            {% else %}
+              <span class="text-danger fw-bold"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- Action Row -->
+        <tr>
+          <th class="py-4 px-4 border-0"></th>
+          <td class="py-4 px-4 text-center border-0 border-start">
+            <a href="{{ url_for('customer.product_detail', product_id=p1._id | string) }}" class="btn btn-outline-primary rounded-pill px-4 fw-semibold py-2">
+              View Details <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </td>
+          <td class="py-4 px-4 text-center border-0 border-start">
+            <a href="{{ url_for('customer.product_detail', product_id=p2._id | string) }}" class="btn btn-outline-primary rounded-pill px-4 fw-semibold py-2">
+              View Details <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-  {% endfor %}
 </div>
 
 {% else %}
-<div class="empty-state">
-  <div class="empty-state-icon">
+<!-- Empty or Single-Product Prompt State -->
+<div class="empty-state card p-5 border rounded-4 text-center shadow-sm bg-white">
+  <div class="empty-state-icon mx-auto mb-3" style="font-size: 3rem; color: #6366f1;">
     <i class="bi bi-arrow-left-right"></i>
   </div>
-  <h4>Select 2 Projectors to Compare</h4>
-  <p>Choose any two models from the dropdown selectors above to compare side-by-side specs, resolution, lumens, throw distances, and prices.</p>
-  <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold">
-    <i class="bi bi-grid-fill me-1"></i>Explore Catalog
-  </a>
+  <h4 class="fw-bold text-dark mb-2">Select 2 Projectors to Compare</h4>
+  <p class="text-muted mx-auto mb-4" style="max-width: 520px;">
+    Choose any two models from the selectors above to see a full side-by-side comparison matrix of resolution, lumens, throw distances, connectivity, and live pricing.
+  </p>
+  <div>
+    <a href="{{ url_for('customer.catalog') }}" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-semibold">
+      <i class="bi bi-grid-fill me-1"></i>Explore Catalog
+    </a>
+  </div>
 </div>
 {% endif %}
 {% endblock %}
