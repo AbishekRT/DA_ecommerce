@@ -78,9 +78,6 @@
               <a class="nav-link" href="{{ url_for('customer.catalog') }}?type=sell">Home Projectors</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('customer.catalog') }}?type=rent">Rental Fleet</a>
-            </li>
-            <li class="nav-item">
               <a class="nav-link" href="{{ url_for('customer.compare') }}">Compare</a>
             </li>
             {% if current_user.is_authenticated and current_user.role == 'customer' %}
