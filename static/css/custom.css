@@ -557,10 +557,12 @@ body {
   margin-top: auto;
 }
 
+.magcubic-buy-text,
 .magcubic-price-red {
   color: #eb2227;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.925rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .magcubic-price-strike {
@@ -572,10 +574,11 @@ body {
 }
 
 .magcubic-rent-text {
-  font-size: 0.775rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #2563eb;
   margin-top: 0.2rem;
+  line-height: 1.35;
 }
 
 .top-promo-bar {
@@ -1231,4 +1234,19 @@ body {
 .comparison-highlight {
   background-color: #f0fdf4 !important;
   color: #166534 !important;
+}
+
+.navbar-search-input,
+.navbar-search-input:focus,
+.magcubic-nav input[name="q"],
+.magcubic-nav input[name="q"]:focus {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.navbar-search-input::placeholder,
+.magcubic-nav input[name="q"]::placeholder {
+  color: rgba(255, 255, 255, 0.8) !important;
+  opacity: 1 !important;
 }

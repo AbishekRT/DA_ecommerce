@@ -128,7 +128,9 @@
           <!-- Centered Price Row -->
           <div class="magcubic-price-box">
             {% if product.type in ['sell', 'both'] %}
-              <span class="magcubic-price-red">LKR {{ "{:,.0f}".format(product.sale_price) }}</span>
+              <div class="magcubic-buy-text">
+                Buy: LKR {{ "{:,.0f}".format(product.sale_price) }}
+              </div>
             {% endif %}
             {% if product.type in ['rent', 'both'] %}
               <div class="magcubic-rent-text">
