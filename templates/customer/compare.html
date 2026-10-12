@@ -219,14 +219,14 @@
           <th class="py-3 px-4 text-muted fw-semibold border-bottom">Brightness</th>
           <td class="py-3 px-4 text-center border-bottom border-start text-dark">
             {% if p1.specs and p1.specs.brightness_lumens %}
-              <i class="bi bi-sun text-warning me-1"></i>{{ p1.specs.brightness_lumens }} ANSI Lumens
+              {{ p1.specs.brightness_lumens }} ANSI Lumens
             {% else %}
               -
             {% endif %}
           </td>
           <td class="py-3 px-4 text-center border-bottom border-start text-dark">
             {% if p2.specs and p2.specs.brightness_lumens %}
-              <i class="bi bi-sun text-warning me-1"></i>{{ p2.specs.brightness_lumens }} ANSI Lumens
+              {{ p2.specs.brightness_lumens }} ANSI Lumens
             {% else %}
               -
             {% endif %}

@@ -133,6 +133,11 @@ def catalog():
     elif sort_by == "name_asc":
         products = sorted(products, key=lambda p: p.get("name", "").lower())
 
+    # Strip any em dashes from product names
+    for p in products:
+        if "name" in p and isinstance(p["name"], str):
+            p["name"] = p["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
+
     # Fetch all categories for the filter pills
     categories = list(categories_col.find())
 
@@ -171,6 +176,9 @@ def product_detail(product_id):
     category = categories_col.find_one({"_id": product["category_id"]})
     sl_today = get_sl_today().strftime("%Y-%m-%d")
 
+    if product and "name" in product and isinstance(product["name"], str):
+        product["name"] = product["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
+
     return render_template(
         "customer/product_detail.html",
         product=product,
@@ -186,8 +194,7 @@ def product_detail(product_id):
 def compare():
     """
     Side-by-side comparison of exactly 2 products.
-    Uses a simple $in query on two _id values — purposely kept simple
-    and explainable for the viva.
+    Uses a simple $in query on two _id values.
     """
     ids = request.args.getlist("ids")
     products = []
@@ -205,8 +212,16 @@ def compare():
             p_map = {str(p["_id"]): p for p in fetched}
             products = [p_map[i] for i in ids if i in p_map]
 
+    # Strip any em dashes from product names
+    for p in products:
+        if "name" in p and isinstance(p["name"], str):
+            p["name"] = p["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
+
     # Fetch all products for the selection form, alphabetized by name
     all_products = list(products_col.find({"is_active": {"$ne": False}}, {"name": 1, "brand": 1}).sort("name", 1))
+    for p in all_products:
+        if "name" in p and isinstance(p["name"], str):
+            p["name"] = p["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
 
     return render_template(
         "customer/compare.html",

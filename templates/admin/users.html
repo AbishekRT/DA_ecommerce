@@ -60,7 +60,7 @@
             {% endif %}
           </td>
           <td>
-            <div class="small fw-semibold text-dark">{{ u.phone or '—' }}</div>
+            <div class="small fw-semibold text-dark">{{ u.phone or '-' }}</div>
             <div class="small text-muted text-truncate" style="max-width: 220px;" title="{{ u.address or '' }}">{{ u.address or 'Online Registration' }}</div>
           </td>
           <td class="text-center">
@@ -74,7 +74,7 @@
             </span>
           </td>
           <td class="pe-4 text-muted small">
-            {{ u.created_at.strftime('%b %d, %Y') if u.created_at and u.created_at.strftime else '—' }}
+            {{ u.created_at.strftime('%b %d, %Y') if u.created_at and u.created_at.strftime else '-' }}
           </td>
         </tr>
         {% endfor %}

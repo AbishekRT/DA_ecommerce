@@ -67,6 +67,12 @@ def create_app():
                 return dict(cart_count=0)
         return dict(cart_count=0)
 
+    @app.template_filter('clean_dash')
+    def clean_dash_filter(s):
+        if not s:
+            return ""
+        return str(s).replace('\u2014', ' - ').replace('\u2013', ' - ').replace('&mdash;', ' - ').replace('&ndash;', ' - ')
+
     # ------------------------------------------------------------------
     # Custom Error Handlers (Industrial Grade 403, 404, 500 Pages)
     # ------------------------------------------------------------------

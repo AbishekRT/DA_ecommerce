@@ -18,7 +18,7 @@
     <div class="alert alert-dark bg-dark text-white border-0 shadow-sm rounded-4 d-flex align-items-center justify-content-between p-3 mb-4">
       <div class="d-flex align-items-center gap-2">
         <i class="bi bi-search text-warning fs-5"></i>
-        <span>Search results for: <strong class="text-warning">"{{ search_query }}"</strong> &mdash; <strong>{{ products | length }}</strong> matching projector{{ 's' if products | length != 1 else '' }}</span>
+        <span>Search results for: <strong class="text-warning">"{{ search_query }}"</strong> : <strong>{{ products | length }}</strong> matching projector{{ 's' if products | length != 1 else '' }}</span>
       </div>
       <a href="{{ url_for('customer.catalog', category=selected_cat, type=selected_type, sort=selected_sort) }}" class="btn btn-sm btn-outline-light rounded-pill px-3" data-filter-link>
         <i class="bi bi-x-circle me-1"></i>Clear Search
@@ -113,12 +113,15 @@
 
           <!-- Centered Product Title with Specs -->
           <div class="magcubic-title" title="{{ product.name }}">
-            {{ product.brand }} {{ product.name }} &mdash;
-            {% if product.specs and product.specs.resolution %}
-              Native {{ product.specs.resolution.split('(')[0] | trim }},
-            {% endif %}
-            {% if product.specs and product.specs.brightness_lumens %}
-              {{ product.specs.brightness_lumens }} ANSI Lumens
+            {{ product.name }}
+            {% if product.specs and (product.specs.resolution or product.specs.brightness_lumens) %}
+              :
+              {% if product.specs.resolution %}
+                Native {{ product.specs.resolution.split('(')[0] | trim }}{% if product.specs.brightness_lumens %},{% endif %}
+              {% endif %}
+              {% if product.specs and product.specs.brightness_lumens %}
+                {{ product.specs.brightness_lumens }} ANSI Lumens
+              {% endif %}
             {% endif %}
           </div>
 
@@ -129,7 +132,7 @@
             {% endif %}
             {% if product.type in ['rent', 'both'] %}
               <div class="magcubic-rent-text">
-                <i class="bi bi-calendar-event me-1"></i>Rent: LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} / day
+                Rent: LKR {{ "{:,.0f}".format(product.rent_price_per_day) }} / day
               </div>
             {% endif %}
           </div>
