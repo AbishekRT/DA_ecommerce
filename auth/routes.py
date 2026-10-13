@@ -2,19 +2,93 @@
 
 import re
 from datetime import datetime, timezone
+from bson import ObjectId
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request
+    flash, request, session
 )
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from extensions import users_col
+from extensions import users_col, carts_col, products_col
 from models import User
 
 auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+
+def _oid(s):
+    try:
+        return ObjectId(s)
+    except Exception:
+        return None
+
+
+def is_safe_url(target):
+    if not target:
+        return False
+    return target.startswith("/") and not target.startswith("//")
+
+
+def process_pending_cart(user_id):
+    """Commits any pending cart item stored during guest browsing to MongoDB cart."""
+    pending = session.pop("pending_cart_item", None)
+    if not pending:
+        return None
+    try:
+        pid = pending.get("product_id")
+        item_type = pending.get("type", "sell")
+        qty = int(pending.get("qty", 1))
+        product = products_col.find_one({"_id": _oid(pid), "is_active": {"$ne": False}})
+        if not product:
+            return None
+
+        new_item = {
+            "product_id": _oid(pid),
+            "type": item_type,
+            "qty": qty,
+        }
+        if item_type == "rent":
+            from customer.routes import validate_rental_dates
+            is_valid, err_msg, start_dt, end_dt = validate_rental_dates(
+                pending.get("rent_start_date", ""),
+                pending.get("rent_end_date", "")
+            )
+            if not is_valid:
+                return None
+            new_item["rent_start_date"] = start_dt
+            new_item["rent_end_date"] = end_dt
+
+        now = datetime.now(timezone.utc)
+        user_oid = ObjectId(user_id)
+        existing_cart = carts_col.find_one({"user_id": user_oid})
+        if existing_cart:
+            duplicate = any(
+                str(i["product_id"]) == str(pid) and i["type"] == item_type
+                for i in existing_cart.get("items", [])
+            )
+            if not duplicate:
+                carts_col.update_one(
+                    {"user_id": user_oid},
+                    {
+                        "$push": {"items": new_item},
+                        "$set": {"updated_at": now},
+                    }
+                )
+        else:
+            carts_col.update_one(
+                {"user_id": user_oid},
+                {
+                    "$push": {"items": new_item},
+                    "$set": {"updated_at": now},
+                    "$setOnInsert": {"user_id": user_oid},
+                },
+                upsert=True,
+            )
+        return product.get("name", "Item")
+    except Exception:
+        return None
 
 
 def _validate_password(password: str, name: str = "") -> list:
@@ -93,6 +167,17 @@ def register():
 
         user_obj = User(new_user)
         login_user(user_obj)
+
+        added_item_name = process_pending_cart(user_obj.id)
+        if added_item_name:
+            flash(f"Account created! '{added_item_name}' has been added to your cart.", "success")
+            return redirect(url_for("customer.view_cart"))
+
+        next_page = request.args.get("next") or request.form.get("next")
+        if next_page and is_safe_url(next_page):
+            flash("Account created successfully! Welcome to ProjectorShop.", "success")
+            return redirect(next_page)
+
         flash("Account created successfully! Welcome to ProjectorShop.", "success")
         return redirect(url_for("customer.catalog"))
 
@@ -103,6 +188,9 @@ def register():
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
+        next_page = request.args.get("next") or request.form.get("next")
+        if next_page and is_safe_url(next_page):
+            return redirect(next_page)
         if current_user.role == "admin":
             return redirect(url_for("admin.dashboard"))
         elif current_user.role == "staff":
@@ -136,8 +224,14 @@ def login():
         user_obj = User(doc)
         login_user(user_obj)
 
-        next_page = request.args.get("next")
-        if next_page:
+        if user_obj.role == "customer":
+            added_item_name = process_pending_cart(user_obj.id)
+            if added_item_name:
+                flash(f"'{added_item_name}' has been added to your cart!", "success")
+                return redirect(url_for("customer.view_cart"))
+
+        next_page = request.args.get("next") or request.form.get("next")
+        if next_page and is_safe_url(next_page):
             return redirect(next_page)
 
         if user_obj.role == "admin":

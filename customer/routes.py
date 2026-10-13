@@ -222,10 +222,9 @@ def view_cart():
 
 
 @customer_bp.route("/cart/add", methods=["POST"])
-@login_required
 def add_to_cart():
     """Add item to cart or update existing cart document."""
-    if current_user.role in ['admin', 'staff']:
+    if current_user.is_authenticated and current_user.role in ['admin', 'staff']:
         flash("Shopping cart is disabled for Administrative and Staff accounts.", "warning")
         return redirect(url_for("customer.catalog"))
 
@@ -267,6 +266,20 @@ def add_to_cart():
             flash(f"Requested quantity ({qty}) exceeds available stock ({stock_avail}).", "warning")
             return redirect(url_for("customer.product_detail", product_id=product_id))
 
+    start_str = request.form.get("rent_start_date") or request.form.get("rental_start") or ""
+    end_str = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
+
+    if not current_user.is_authenticated:
+        session["pending_cart_item"] = {
+            "product_id": product_id,
+            "type": item_type,
+            "qty": qty,
+            "rent_start_date": start_str if item_type == "rent" else "",
+            "rent_end_date": end_str if item_type == "rent" else "",
+        }
+        flash(f"Please sign in or create an account to add '{product['name']}' to your cart.", "info")
+        return redirect(url_for("auth.login", next=url_for("customer.view_cart")))
+
     new_item = {
         "product_id": _oid(product_id),
         "type": item_type,
@@ -274,8 +287,6 @@ def add_to_cart():
     }
 
     if item_type == "rent":
-        start_str = request.form.get("rent_start_date") or request.form.get("rental_start") or ""
-        end_str = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
         is_valid, err_msg, start_dt, end_dt = validate_rental_dates(start_str, end_str)
         if not is_valid:
             flash(err_msg, "danger")

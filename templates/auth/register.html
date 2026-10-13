@@ -12,8 +12,9 @@
       <p class="auth-subtitle">Register to buy, rent, and manage equipment.</p>
     </div>
 
-    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+    <form method="POST" action="{{ url_for('auth.register', next=request.args.get('next') or request.form.get('next', '')) if (request.args.get('next') or request.form.get('next')) else url_for('auth.register') }}" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="next" value="{{ request.args.get('next') or request.form.get('next', '') }}" />
       <!-- Full Name -->
       <div class="mb-3">
         <label for="name" class="auth-label">Full Name</label>
@@ -72,7 +73,7 @@
     <div class="text-center mt-4 pt-3 border-top">
       <p class="text-muted small mb-0">
         Already have an account?
-        <a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold text-decoration-none">Sign in here</a>
+        <a href="{{ url_for('auth.login', next=request.args.get('next') or request.form.get('next', '')) if (request.args.get('next') or request.form.get('next')) else url_for('auth.login') }}" class="text-primary fw-semibold text-decoration-none">Sign in here</a>
       </p>
     </div>
   </div>

@@ -133,7 +133,7 @@
             </ul>
           </div>
           {% else %}
-          <a href="{{ url_for('auth.login') }}" class="text-white text-decoration-none fs-5" title="Sign In">
+          <a href="{{ url_for('auth.login', next=request.full_path if request.endpoint and request.endpoint not in ['auth.login', 'auth.register'] else None) }}" class="text-white text-decoration-none fs-5" title="Sign In">
             <i class="bi bi-person"></i>
           </a>
           {% endif %}
