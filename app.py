@@ -1,31 +1,26 @@
-"""
-app.py
-Flask application factory with registered Blueprints and Custom Error Handlers (403, 404, 500).
-"""
+"""Flask application factory and configuration."""
 
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 import os
 
-load_dotenv()   # load .env before anything else
+load_dotenv()
 
 csrf = CSRFProtect()
+
 
 def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-fallback-key")
 
-    # ------------------------------------------------------------------
-    # Initialise extensions
-    # ------------------------------------------------------------------
+    # Initialize extensions
     csrf.init_app(app)
 
     from extensions import login_manager
     login_manager.init_app(app)
 
-    # User loader - Flask-Login calls this on every request to rebuild
-    # current_user from the session cookie's stored user id.
+    # Reload user instance from session cookie
     from extensions import users_col
     from bson import ObjectId
     from models import User
@@ -40,9 +35,7 @@ def create_app():
             return None
         return None
 
-    # ------------------------------------------------------------------
     # Register blueprints
-    # ------------------------------------------------------------------
     from auth.routes import auth_bp
     from customer.routes import customer_bp
     from admin.routes import admin_bp
@@ -51,9 +44,7 @@ def create_app():
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
-    # ------------------------------------------------------------------
-    # Context Processor (Live Cart Item Count for Customer Navbar)
-    # ------------------------------------------------------------------
+    # Inject cart count into customer navbar
     @app.context_processor
     def inject_cart_count():
         from flask_login import current_user
@@ -73,9 +64,7 @@ def create_app():
             return ""
         return str(s).replace('\u2014', ' - ').replace('\u2013', ' - ').replace('&mdash;', ' - ').replace('&ndash;', ' - ')
 
-    # ------------------------------------------------------------------
-    # Custom Error Handlers (Industrial Grade 403, 404, 500 Pages)
-    # ------------------------------------------------------------------
+    # Error handlers
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):
         flash("Your security session expired or the form submission was invalid. Please try again.", "danger")
@@ -95,7 +84,8 @@ def create_app():
 
     return app
 
-# Expose top-level application instance for Vercel / WSGI servers
+
+# WSGI application entry point
 app = create_app()
 
 if __name__ == "__main__":

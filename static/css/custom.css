@@ -1,6 +1,4 @@
-/* ==========================================================================
-   ProjectorShop - Modern Retail E-Commerce Stylesheet (Matched to Reference)
-   ========================================================================== */
+/* Main stylesheet */
 
 :root {
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -22,9 +20,7 @@ body {
   font-size: 0.875rem;
 }
 
-/* --------------------------------------------------------------------------
-   Retail Product Card (Matched to Reference Image)
-   -------------------------------------------------------------------------- */
+/* Retail product card */
 .retail-card {
   background: #ffffff;
   border: 1px solid #f0f0f0;
@@ -182,9 +178,7 @@ body {
   border: 1px solid #e5e7eb;
 }
 
-/* --------------------------------------------------------------------------
-   Spacious Modern Empty State Container
-   -------------------------------------------------------------------------- */
+/* Empty state container */
 .empty-state {
   background: #ffffff !important;
   border: 1px dashed #cbd5e1 !important;
@@ -224,9 +218,7 @@ body {
   line-height: 1.5;
 }
 
-/* --------------------------------------------------------------------------
-   Product Details Page Enhancements
-   -------------------------------------------------------------------------- */
+/* Product details page */
 .detail-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -300,9 +292,7 @@ body {
   outline: none;
 }
 
-/* --------------------------------------------------------------------------
-   Modern Authentication Pages (Sign In & Sign Up)
-   -------------------------------------------------------------------------- */
+/* Authentication pages */
 .auth-container {
   max-width: 440px;
   margin: 2rem auto 3rem auto;
@@ -445,9 +435,7 @@ body {
   font-size: 0.775rem;
 }
 
-/* --------------------------------------------------------------------------
-   Magcubic Pixel-to-Pixel Product Grid (Matched to Reference Image)
-   -------------------------------------------------------------------------- */
+/* Product catalog grid */
 .magcubic-toolbar {
   display: flex;
   justify-content: space-between;
@@ -759,9 +747,7 @@ body {
   z-index: 10;
 }
 
-/* --------------------------------------------------------------------------
-   Elevated KPI Metric Cards (Industrial Standard)
-   -------------------------------------------------------------------------- */
+/* KPI metric cards */
 .kpi-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -900,9 +886,7 @@ body {
   border: 1px solid #fecaca;
 }
 
-/* --------------------------------------------------------------------------
-   Minimalist Modern Error Pages (Matched to Reference Image)
-   -------------------------------------------------------------------------- */
+/* Error pages */
 .error-page-container {
   min-height: 55vh;
   display: flex;
@@ -971,9 +955,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* --------------------------------------------------------------------------
-   Premium Category Pills & Horizontal Scroll Track
-   -------------------------------------------------------------------------- */
+/* Category pills and scroll track */
 .category-scroll-container {
   position: relative;
   width: 100%;
@@ -1038,9 +1020,7 @@ body {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
 }
 
-/* --------------------------------------------------------------------------
-   Secondary Toolbar & Segmented Availability Filter
-   -------------------------------------------------------------------------- */
+/* Secondary toolbar and availability filter */
 .catalog-secondary-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1086,9 +1066,7 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* --------------------------------------------------------------------------
-   Seamless AJAX Transition
-   -------------------------------------------------------------------------- */
+/* Catalog AJAX transitions */
 #catalog-content-container {
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
@@ -1099,9 +1077,7 @@ body {
   pointer-events: none;
 }
 
-/* --------------------------------------------------------------------------
-   Catalog Product Card Compare Button
-   -------------------------------------------------------------------------- */
+/* Product card compare button */
 .catalog-compare-btn {
   position: absolute;
   top: 10px;
@@ -1135,9 +1111,7 @@ body {
   box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
 }
 
-/* --------------------------------------------------------------------------
-   Floating Compare Bottom Dock
-   -------------------------------------------------------------------------- */
+/* Floating compare dock */
 .floating-compare-dock {
   position: fixed;
   bottom: 0;

@@ -1,11 +1,4 @@
-"""
-customer/routes.py
-All customer-facing routes: catalog, product detail, compare,
-cart management, checkout, and order history.
-
-Every MongoDB operation is a direct, explicit PyMongo call.
-No ODM, no repository layer — every query is readable in-place.
-"""
+"""Customer routes for catalog, product detail, comparison, cart, checkout, and order history."""
 
 from datetime import datetime, timezone, timedelta, date
 from bson import ObjectId
@@ -25,34 +18,27 @@ from extensions import (
 
 customer_bp = Blueprint("customer", __name__, template_folder="../templates/customer")
 
-# ---------------------------------------------------------------------------
-# Sri Lanka Timezone (UTC+5:30) and Rental Date Validation Helpers
-# ---------------------------------------------------------------------------
+# Sri Lanka timezone (UTC+5:30)
 SL_TZ = timezone(timedelta(hours=5, minutes=30))
 
+
 def get_sl_now():
-    """Returns current datetime in Sri Lanka timezone."""
+    """Return current datetime in Sri Lanka timezone."""
     return datetime.now(SL_TZ)
 
+
 def get_sl_today():
-    """Returns current date in Sri Lanka timezone."""
+    """Return current date in Sri Lanka timezone."""
     return datetime.now(SL_TZ).date()
 
+
 def validate_rental_dates(start_str, end_str):
-    """
-    Validates rental start and end date strings based on Sri Lanka business rules.
-    Rules:
-    1. Both start_date and end_date are required in YYYY-MM-DD format.
-    2. start_date must not be in the past.
-    3. end_date must be strictly after start_date (minimum 1 full day).
-    4. Duration must be at most 30 days.
-    Returns: (is_valid, error_message, start_utc, end_utc)
-    """
+    """Validate rental date range constraints."""
     if not start_str or not end_str:
         return False, "Both start and end dates are required for rental bookings.", None, None
     try:
         start_d = datetime.strptime(str(start_str).strip(), "%Y-%m-%d").date()
-        end_d   = datetime.strptime(str(end_str).strip(), "%Y-%m-%d").date()
+        end_d = datetime.strptime(str(end_str).strip(), "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return False, "Rental dates must be in valid YYYY-MM-DD format.", None, None
 
@@ -68,34 +54,25 @@ def validate_rental_dates(start_str, end_str):
         return False, f"Rental duration ({duration} days) exceeds the maximum allowed limit of 30 days.", None, None
 
     start_utc = datetime(start_d.year, start_d.month, start_d.day, tzinfo=timezone.utc)
-    end_utc   = datetime(end_d.year, end_d.month, end_d.day, tzinfo=timezone.utc)
+    end_utc = datetime(end_d.year, end_d.month, end_d.day, tzinfo=timezone.utc)
     return True, "", start_utc, end_utc
 
 
-# ===========================================================================
-# HELPER - safe ObjectId conversion
-# ===========================================================================
+# Helper: safe ObjectId conversion
 def _oid(s):
-    """Convert string to ObjectId, abort 404 on invalid format."""
     try:
         return ObjectId(s)
     except (InvalidId, TypeError):
         abort(404)
 
 
-# ===========================================================================
-# CATALOG
-# ===========================================================================
+# Catalog
 @customer_bp.route("/")
 @customer_bp.route("/catalog")
 def catalog():
-    """
-    Lists all products with optional filters.
-    PyMongo find() with a dynamic query dict — plain and explainable.
-    """
+    """List products with optional search, category, type, and sort filters."""
     query = {"is_active": {"$ne": False}}
 
-    # Filter by category (referenced by ObjectId)
     cat_id = request.args.get("category")
     if cat_id:
         try:
@@ -103,13 +80,10 @@ def catalog():
         except Exception:
             pass
 
-    # Filter by type: "sell", "rent", or "both" means either
     type_filter = request.args.get("type")
     if type_filter in ("sell", "rent"):
-        # $in matches products listed as that specific type OR as "both"
         query["type"] = {"$in": [type_filter, "both"]}
 
-    # Filter by search query (text/regex matching name, brand, description, resolution)
     q = request.args.get("q", "").strip()
     if q:
         import re
@@ -121,10 +95,8 @@ def catalog():
             {"specs.resolution": {"$regex": q_safe, "$options": "i"}},
         ]
 
-    # Direct PyMongo find — returns a cursor of product documents
     products = list(products_col.find(query))
 
-    # Sort handling
     sort_by = request.args.get("sort", "featured")
     if sort_by == "price_low":
         products = sorted(products, key=lambda p: (p.get("sale_price") or p.get("rent_price_per_day") or 0))
@@ -133,12 +105,10 @@ def catalog():
     elif sort_by == "name_asc":
         products = sorted(products, key=lambda p: p.get("name", "").lower())
 
-    # Strip any em dashes from product names
     for p in products:
         if "name" in p and isinstance(p["name"], str):
             p["name"] = p["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
 
-    # Fetch all categories for the filter pills
     categories = list(categories_col.find())
 
     return render_template(
@@ -152,27 +122,14 @@ def catalog():
     )
 
 
-# ===========================================================================
-# PRODUCT DETAIL
-# ===========================================================================
+# Product Detail
 @customer_bp.route("/product/<product_id>")
 def product_detail(product_id):
-    """
-    Fetches a single product by _id.
-    specs is EMBEDDED in the product document — always retrieved together,
-    never queried independently. No join / lookup needed.
-    """
-    # EMBED: specs is embedded inside the product document because it is
-    # always accessed with the product, has a fixed/bounded size, and is
-    # never queried or updated independently.
+    """View details and pricing for a single product."""
     product = products_col.find_one({"_id": _oid(product_id), "is_active": {"$ne": False}})
     if not product:
         abort(404)
 
-    # REFERENCE: category_id is a reference to categories collection.
-    # We do a second find_one here to get the category name for display.
-    # It is referenced (not embedded) because categories are shared across
-    # many products and must be manageable independently.
     category = categories_col.find_one({"_id": product["category_id"]})
     sl_today = get_sl_today().strftime("%Y-%m-%d")
 
@@ -187,15 +144,10 @@ def product_detail(product_id):
     )
 
 
-# ===========================================================================
-# PRODUCT COMPARISON
-# ===========================================================================
+# Product Comparison
 @customer_bp.route("/compare")
 def compare():
-    """
-    Side-by-side comparison of exactly 2 products.
-    Uses a simple $in query on two _id values.
-    """
+    """Side-by-side comparison of selected products."""
     ids = request.args.getlist("ids")
     products = []
 
@@ -206,18 +158,14 @@ def compare():
             oid_list = []
 
         if oid_list:
-            # $in operator matches documents whose _id is in the provided list.
-            # This fetches selected products in a single round-trip to MongoDB.
             fetched = list(products_col.find({"_id": {"$in": oid_list}, "is_active": {"$ne": False}}))
             p_map = {str(p["_id"]): p for p in fetched}
             products = [p_map[i] for i in ids if i in p_map]
 
-    # Strip any em dashes from product names
     for p in products:
         if "name" in p and isinstance(p["name"], str):
             p["name"] = p["name"].replace('—', ' - ').replace('–', ' - ').replace('&mdash;', ' - ')
 
-    # Fetch all products for the selection form, alphabetized by name
     all_products = list(products_col.find({"is_active": {"$ne": False}}, {"name": 1, "brand": 1}).sort("name", 1))
     for p in all_products:
         if "name" in p and isinstance(p["name"], str):
@@ -231,48 +179,39 @@ def compare():
     )
 
 
-# ===========================================================================
-# CART
-# ===========================================================================
+# Cart
 @customer_bp.route("/cart")
 @login_required
 def view_cart():
-    """
-    Displays the current user's cart.
-    Cart items REFERENCE product_id so prices always reflect live data.
-    """
+    """View customer shopping cart."""
     if current_user.role in ['admin', 'staff']:
         flash("Shopping cart is reserved for Customer accounts. Staff and Admins manage operations via the Management Console.", "info")
         return redirect(url_for("admin.dashboard" if current_user.role == "admin" else "admin.rentals_list"))
 
-    # REFERENCE: cart items store product_id as a reference (not embedded
-    # product data) so the price and stock shown in the cart always reflect
-    # the current state of the products collection.
     cart = carts_col.find_one({"user_id": ObjectId(current_user.id)})
     enriched_items = []
     cart_total = 0
 
     if cart:
         for item in cart.get("items", []):
-            # For each cart item, fetch the live product document
             product = products_col.find_one({"_id": item["product_id"]})
             if product:
                 if item["type"] == "sell":
                     unit_price = product.get("sale_price", 0) or 0
                     subtotal = unit_price * item["qty"]
-                else:  # rent
+                else:
                     start = item.get("rent_start_date")
-                    end   = item.get("rent_end_date")
-                    days  = (end - start).days if start and end else 0
-                    days  = max(days, 1)
+                    end = item.get("rent_end_date")
+                    days = (end - start).days if start and end else 0
+                    days = max(days, 1)
                     unit_price = product.get("rent_price_per_day", 0) or 0
-                    subtotal   = unit_price * days * item["qty"]
+                    subtotal = unit_price * days * item["qty"]
                 cart_total += subtotal
                 enriched_items.append({
-                    "product":  product,
-                    "item":     item,
+                    "product": product,
+                    "item": item,
                     "subtotal": subtotal,
-                    "days":     (end - start).days if item["type"] == "rent" and start and end else None,
+                    "days": (end - start).days if item["type"] == "rent" and start and end else None,
                 })
 
     return render_template(
@@ -285,22 +224,19 @@ def view_cart():
 @customer_bp.route("/cart/add", methods=["POST"])
 @login_required
 def add_to_cart():
-    """
-    Adds an item to the cart (upserts the cart document).
-    One cart document per user — upserted with update_one + $setOnInsert.
-    """
+    """Add item to cart or update existing cart document."""
     if current_user.role in ['admin', 'staff']:
         flash("Shopping cart is disabled for Administrative and Staff accounts.", "warning")
         return redirect(url_for("customer.catalog"))
 
     product_id = request.form.get("product_id")
-    item_type  = request.form.get("type")       # "sell" or "rent"
+    item_type = request.form.get("type")
 
     product = products_col.find_one({"_id": _oid(product_id), "is_active": {"$ne": False}})
     if not product:
         abort(404)
 
-    # Validate mode vs product type
+    # Validate mode vs product availability
     if item_type == "sell" and product.get("type") == "rent":
         flash("This product is available for rent only.", "warning")
         return redirect(url_for("customer.product_detail", product_id=product_id))
@@ -332,31 +268,26 @@ def add_to_cart():
             return redirect(url_for("customer.product_detail", product_id=product_id))
 
     new_item = {
-        # REFERENCE: product_id is stored as a reference so the cart always
-        # reflects live product data (current price, stock) rather than a
-        # frozen snapshot. This contrasts with orders.items which embeds
-        # a price snapshot at checkout time.
         "product_id": _oid(product_id),
-        "type":       item_type,
-        "qty":        qty,
+        "type": item_type,
+        "qty": qty,
     }
 
     if item_type == "rent":
         start_str = request.form.get("rent_start_date") or request.form.get("rental_start") or ""
-        end_str   = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
+        end_str = request.form.get("rent_end_date") or request.form.get("rental_end") or ""
         is_valid, err_msg, start_dt, end_dt = validate_rental_dates(start_str, end_str)
         if not is_valid:
             flash(err_msg, "danger")
             return redirect(url_for("customer.product_detail", product_id=product_id))
         new_item["rent_start_date"] = start_dt
-        new_item["rent_end_date"]   = end_dt
+        new_item["rent_end_date"] = end_dt
 
     user_oid = ObjectId(current_user.id)
 
-    # Check if this product+type combo already exists in the cart
+    # Check for duplicate item in cart
     existing_cart = carts_col.find_one({"user_id": user_oid})
     if existing_cart:
-        # Check for duplicate item
         duplicate = any(
             str(i["product_id"]) == product_id and i["type"] == item_type
             for i in existing_cart.get("items", [])
@@ -365,13 +296,11 @@ def add_to_cart():
             flash("This item is already in your cart.", "warning")
             return redirect(url_for("customer.view_cart"))
 
-    # $push appends the new item into the items array.
-    # $setOnInsert creates the cart document if it doesn't exist yet (upsert).
     carts_col.update_one(
         {"user_id": user_oid},
         {
             "$push": {"items": new_item},
-            "$set":  {"updated_at": datetime.now(timezone.utc)},
+            "$set": {"updated_at": datetime.now(timezone.utc)},
             "$setOnInsert": {"user_id": user_oid},
         },
         upsert=True,
@@ -385,21 +314,17 @@ def add_to_cart():
 @customer_bp.route("/cart/remove", methods=["POST"])
 @login_required
 def remove_from_cart():
-    """
-    Removes a specific item from the cart using $pull.
-    $pull removes all array elements matching the given condition.
-    """
+    """Remove item from cart array."""
     product_id = request.form.get("product_id")
-    item_type  = request.form.get("type")
+    item_type = request.form.get("type")
 
-    # $pull removes matching array elements without replacing the whole array
     carts_col.update_one(
         {"user_id": ObjectId(current_user.id)},
         {
             "$pull": {
                 "items": {
                     "product_id": _oid(product_id),
-                    "type":       item_type,
+                    "type": item_type,
                 }
             },
             "$set": {"updated_at": datetime.now(timezone.utc)},
@@ -409,17 +334,11 @@ def remove_from_cart():
     return redirect(url_for("customer.view_cart"))
 
 
-# ===========================================================================
-# CHECKOUT
-# ===========================================================================
+# Checkout
 @customer_bp.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
-    """
-    GET  - shows the checkout review page.
-    POST - atomic cart claim (Option A), stock reservation, order/rentals creation,
-           with automatic reverse compensation on any failure or exception.
-    """
+    """Order review and placement with stock deduction and rollback protection."""
     from pymongo import ReturnDocument
 
     if current_user.role in ['admin', 'staff']:
@@ -468,7 +387,7 @@ def checkout():
             grand_total=grand_total,
         )
 
-    # --- POST: ATOMIC CART CLAIMING (OPTION A) ---
+    # Atomic cart claim to prevent duplicate submissions
     now = datetime.now(timezone.utc)
     claimed_cart = carts_col.find_one_and_update(
         {"user_id": user_oid, "items.0": {"$exists": True}},
@@ -486,25 +405,25 @@ def checkout():
     inserted_rental_ids = []
 
     def rollback_compensation(flash_msg, category="danger"):
-        # 1. Delete inserted rental documents if created
+        # Roll back inserted rentals
         if inserted_rental_ids:
             try:
                 rentals_col.delete_many({"_id": {"$in": inserted_rental_ids}})
             except Exception:
                 pass
-        # 2. Delete inserted order document if created
+        # Roll back inserted order
         if inserted_order_id:
             try:
                 orders_col.delete_one({"_id": inserted_order_id})
             except Exception:
                 pass
-        # 3. Restore any reserved stock
+        # Restore reserved stock
         for pid, q in reserved_stock:
             try:
                 products_col.update_one({"_id": pid}, {"$inc": {"stock_qty": q}})
             except Exception:
                 pass
-        # 4. Restore claimed cart items back into the user's cart
+        # Restore claimed items back into cart
         try:
             carts_col.update_one(
                 {"user_id": user_oid},
@@ -520,7 +439,7 @@ def checkout():
         sell_total = 0
         rental_docs = []
 
-        # Step 1: Pre-validate all items
+        # Validate items and availability
         for item in claimed_items:
             product = products_col.find_one({"_id": item["product_id"], "is_active": {"$ne": False}})
             if not product:
@@ -585,7 +504,7 @@ def checkout():
                     "created_at": now,
                 })
 
-        # Step 2: Atomically reserve stock for all sale items
+        # Atomically deduct stock for purchases
         for s_item in sell_items:
             res = products_col.update_one(
                 {"_id": s_item["product_id"], "stock_qty": {"$gte": s_item["qty"]}},
@@ -598,7 +517,7 @@ def checkout():
                 avail = prod.get("stock_qty", 0) if prod else 0
                 return rollback_compensation(f"Insufficient stock for '{s_item['name']}'. Only {avail} available.")
 
-        # Step 3: Insert order document if sale items exist
+        # Create purchase order document
         if sell_items:
             order_doc = {
                 "user_id": user_oid,
@@ -611,7 +530,7 @@ def checkout():
             order_result = orders_col.insert_one(order_doc)
             inserted_order_id = order_result.inserted_id
 
-        # Step 4: Insert rental documents if rental items exist
+        # Create rental booking documents
         if rental_docs:
             rental_result = rentals_col.insert_many(rental_docs)
             inserted_rental_ids = rental_result.inserted_ids
@@ -625,13 +544,11 @@ def checkout():
         return rollback_compensation("An unexpected error occurred while processing checkout. Please try again.")
 
 
-# ===========================================================================
-# ORDER CONFIRMATION
-# ===========================================================================
+# Order Confirmation
 @customer_bp.route("/order-confirmation")
 @login_required
 def order_confirmation():
-    """Static confirmation page shown after successful checkout."""
+    """Order placement confirmation view."""
     order_id = request.args.get("order_id")
     if order_id and order_id != "none":
         try:
@@ -647,36 +564,25 @@ def order_confirmation():
     return render_template("customer/order_confirmation.html", order_id=order_id)
 
 
-# ===========================================================================
-# ORDER HISTORY
-# ===========================================================================
+# Order History
 @customer_bp.route("/orders")
 @login_required
 def order_history():
-    """
-    Shows the current customer's orders and rentals.
-    Orders sorted descending by created_at using sort().
-    """
+    """Customer order history and active rentals."""
     user_oid = ObjectId(current_user.id)
 
-    # Direct PyMongo find with sort — descending order by created_at (-1)
-    # The -1 index on orders.created_at (created in seed.py) supports this sort.
     orders = list(
         orders_col.find({"user_id": user_oid}).sort("created_at", -1)
     )
 
-    # Fetch rentals and enrich with live product name (via referenced product_id)
     rentals_raw = list(
         rentals_col.find({"user_id": user_oid}).sort("created_at", -1)
     )
     enriched_rentals = []
     for rental in rentals_raw:
-        # REFERENCE: we look up the product by product_id reference to display
-        # the product name. The name is not embedded in rentals because
-        # product data is managed independently in the products collection.
         product = products_col.find_one(
             {"_id": rental["product_id"]},
-            {"name": 1, "brand": 1}  # projection — fetch only needed fields
+            {"name": 1, "brand": 1}
         )
         enriched_rentals.append({"rental": rental, "product": product})
 
@@ -687,23 +593,16 @@ def order_history():
     )
 
 
-# ===========================================================================
-# CANCEL ORDER (customer)
-# ===========================================================================
+# Cancel Order
 @customer_bp.route("/orders/<order_id>/cancel", methods=["POST"])
 @login_required
 def cancel_order(order_id):
-    """
-    Customer can cancel their own order only while status is 'pending'.
-    Conditional update_one - the status check is inside the query filter,
-    so MongoDB atomically verifies and updates in one operation.
-    If stock was deducted, stock is safely restored.
-    """
+    """Cancel pending order and restore stock."""
     order = orders_col.find_one_and_update(
         {
-            "_id":     _oid(order_id),
-            "user_id": ObjectId(current_user.id),  # ensures customers can only cancel their own orders
-            "status":  "pending",                   # only pending orders can be cancelled
+            "_id": _oid(order_id),
+            "user_id": ObjectId(current_user.id),
+            "status": "pending",
         },
         {"$set": {"status": "cancelled"}},
     )
@@ -721,24 +620,16 @@ def cancel_order(order_id):
     return redirect(url_for("customer.order_history"))
 
 
-# ===========================================================================
-# CANCEL RENTAL (customer)
-# ===========================================================================
+# Cancel Rental
 @customer_bp.route("/rentals/<rental_id>/cancel", methods=["POST"])
 @login_required
 def cancel_rental(rental_id):
-    """
-    Customer can cancel their own rental only while status is 'pending'.
-    Same conditional update_one pattern as cancel_order.
-    Cancelling sets status to 'cancelled', which automatically excludes
-    this rental from future availability-conflict checks (those only
-    match 'confirmed' or 'active' statuses).
-    """
+    """Cancel pending rental reservation."""
     result = rentals_col.update_one(
         {
-            "_id":     _oid(rental_id),
+            "_id": _oid(rental_id),
             "user_id": ObjectId(current_user.id),
-            "status":  "pending",
+            "status": "pending",
         },
         {"$set": {"status": "cancelled"}},
     )

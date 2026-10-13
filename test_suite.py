@@ -49,9 +49,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             "details": details
         })
 
-    # -----------------------------------------------------------------------
     # TC-01: Duplicate Email Prevention
-    # -----------------------------------------------------------------------
     def test_01_duplicate_email_prevention(self):
         """TC-01: Verify unique index on users.email blocks duplicate registration"""
         email = "alice@example.com"  # existing seeded user
@@ -65,9 +63,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"An account with that email already exists", response.data)
         self.log_result("TC-01", "Duplicate Email Prevention", "PASS", "Unique index on users.email prevented duplicate registration.")
 
-    # -----------------------------------------------------------------------
     # TC-02: Password Policy Enforcement
-    # -----------------------------------------------------------------------
     def test_02_password_policy_enforcement(self):
         """TC-02: Verify weak passwords failing policy rules are rejected"""
         response = self.client.post("/register", data={
@@ -80,9 +76,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Password must be at least 10 characters long", response.data)
         self.log_result("TC-02", "Password Policy Enforcement", "PASS", "Sub-10 character and weak passwords rejected on server side.")
 
-    # -----------------------------------------------------------------------
     # TC-03: Password Hashing Verification
-    # -----------------------------------------------------------------------
     def test_03_password_hashing_security(self):
         """TC-03: Verify passwords stored in MongoDB are hashed with scrypt salt"""
         admin = users_col.find_one({"email": "admin@projectorshop.com"})
@@ -92,9 +86,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertTrue(check_password_hash(admin["password_hash"], "ProjAdmin#2026!Secure"))
         self.log_result("TC-03", "Password Hashing with Scrypt", "PASS", "Passwords stored with irreversible scrypt hash + cryptographic salt.")
 
-    # -----------------------------------------------------------------------
     # TC-04: 3-Role RBAC: Customer Restriction on Management Routes
-    # -----------------------------------------------------------------------
     def test_04_rbac_customer_restriction(self):
         """TC-04: Verify customer role receives 403 Forbidden on management routes"""
         self.client.post("/login", data={
@@ -106,9 +98,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.log_result("TC-04", "RBAC Customer Restriction", "PASS", "@role_required('admin') returned 403 Forbidden for customer role.")
 
-    # -----------------------------------------------------------------------
     # TC-05: 3-Role RBAC: Staff Operations & Super Admin Separation
-    # -----------------------------------------------------------------------
     def test_05_rbac_staff_and_admin_access(self):
         """TC-05: Verify Staff can manage operations and Admin has full access"""
         self.client.get("/logout", follow_redirects=True)
@@ -141,9 +131,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Management Dashboard", res_admin_dash.data)
         self.log_result("TC-05", "3-Role RBAC (Admin/Staff/Customer)", "PASS", "Staff permitted for operational management, restricted from financial analytics; Admin has full access.")
 
-    # -----------------------------------------------------------------------
     # TC-06: Shopping Cart Atomic Operations ($push & $pull)
-    # -----------------------------------------------------------------------
     def test_06_cart_atomic_operations(self):
         """TC-06: Verify atomic document manipulation in carts collection"""
         # Log in as Bob
@@ -182,9 +170,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertFalse(any(i["product_id"] == product["_id"] for i in cart_after["items"]))
         self.log_result("TC-06", "Cart Atomic Operations", "PASS", "$push (upsert) and $pull array mutations executed successfully.")
 
-    # -----------------------------------------------------------------------
     # TC-07: Rental Date Conflict Overlap Detection
-    # -----------------------------------------------------------------------
     def test_07_rental_date_conflict_prevention(self):
         """TC-07: Verify MongoDB query detects overlapping rental date ranges at checkout"""
         self.client.get("/logout", follow_redirects=True)
@@ -217,9 +203,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"is not available for the selected dates", response.data)
         self.log_result("TC-07", "Rental Conflict Detection", "PASS", "Date range overlap query ({$lt, $gt}) successfully detected conflicting booking.")
 
-    # -----------------------------------------------------------------------
     # TC-08: Conditional State Transition (Order Cancellation)
-    # -----------------------------------------------------------------------
     def test_08_conditional_order_cancellation(self):
         """TC-08: Verify atomic filter {status: 'pending'} for customer cancellation"""
         charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
@@ -245,9 +229,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Order could not be cancelled", res_retry.data)
         self.log_result("TC-08", "Conditional Order Cancellation", "PASS", "Atomic filter {status: 'pending'} ensured valid state transition (modified_count=1).")
 
-    # -----------------------------------------------------------------------
     # TC-09: Aggregation Pipeline 1 - Revenue by Category
-    # -----------------------------------------------------------------------
     def test_09_revenue_aggregation_pipeline(self):
         """TC-09: Verify multi-stage revenue aggregation pipeline ($unwind, $lookup, $group, $sort)"""
         pipeline = [
@@ -268,9 +250,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             self.assertGreater(r["revenue"], 0)
         self.log_result("TC-09", "Revenue Aggregation Pipeline", "PASS", f"Pipeline computed revenue grouped across {len(results)} categories (4 status flow).")
 
-    # -----------------------------------------------------------------------
     # TC-10: Aggregation Pipeline 2 - Equipment Utilisation
-    # -----------------------------------------------------------------------
     def test_10_rental_utilisation_pipeline(self):
         """TC-10: Verify date subtraction, $lookup, and $group utilisation pipeline"""
         pipeline = [
@@ -302,9 +282,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
             self.assertGreater(r["total_days"], 0)
         self.log_result("TC-10", "Rental Utilisation Pipeline", "PASS", f"Pipeline calculated duration in days for {len(results)} rented projectors.")
 
-    # -----------------------------------------------------------------------
     # TC-11: Stock Decrement on Successful Checkout
-    # -----------------------------------------------------------------------
     def test_11_stock_decrement_on_checkout(self):
         """TC-11: Verify atomic stock decrement when purchasing retail products"""
         self.client.get("/logout", follow_redirects=True)
@@ -337,9 +315,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(updated_prod["stock_qty"], initial_stock - 2)
         self.log_result("TC-11", "Stock Decrement on Checkout", "PASS", f"Stock decremented atomically from {initial_stock} to {updated_prod['stock_qty']}.")
 
-    # -----------------------------------------------------------------------
     # TC-12: Insufficient Stock Rejection
-    # -----------------------------------------------------------------------
     def test_12_insufficient_stock_rejection(self):
         """TC-12: Verify checkout is aborted if requested qty exceeds available stock"""
         self.client.get("/logout", follow_redirects=True)
@@ -374,9 +350,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(prod_after["stock_qty"], initial_stock)
         self.log_result("TC-12", "Insufficient Stock Rejection", "PASS", "Checkout aborted and stock left untouched when qty exceeded stock.")
 
-    # -----------------------------------------------------------------------
     # TC-13: Multi-Item Stock Rollback Compensation
-    # -----------------------------------------------------------------------
     def test_13_multi_item_stock_rollback(self):
         """TC-13: Verify multi-item rollback restores earlier reserved stock if a later item fails"""
         self.client.get("/logout", follow_redirects=True)
@@ -413,9 +387,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(prod_b_after["stock_qty"], stock_b_orig)
         self.log_result("TC-13", "Multi-Item Stock Rollback", "PASS", "Reverse compensation successfully restored reserved stock upon partial reservation failure.")
 
-    # -----------------------------------------------------------------------
     # TC-14: Stock Restore on Customer Order Cancellation
-    # -----------------------------------------------------------------------
     def test_14_stock_restore_on_customer_cancel(self):
         """TC-14: Verify cancelling a pending order restores product stock idempotently"""
         product = products_col.find_one({"type": {"$in": ["sell", "both"]}})
@@ -456,9 +428,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertFalse(updated_order.get("stock_deducted"))
         self.log_result("TC-14", "Stock Restore on Customer Cancel", "PASS", "Product stock restored (+2) and order marked stock_deducted: False.")
 
-    # -----------------------------------------------------------------------
     # TC-15: Stock Restore on Admin Order Cancellation
-    # -----------------------------------------------------------------------
     def test_15_stock_restore_on_admin_cancel(self):
         """TC-15: Verify admin updating order status to cancelled restores product stock"""
         product = products_col.find_one({"type": {"$in": ["sell", "both"]}})
@@ -498,9 +468,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(prod_after_repeat["stock_qty"], stock_before + 3)
         self.log_result("TC-15", "Stock Restore on Admin Cancel", "PASS", "Admin status change restored stock with strict idempotency guard.")
 
-    # -----------------------------------------------------------------------
     # TC-16: Server-Side Quantity Validation
-    # -----------------------------------------------------------------------
     def test_16_quantity_validation(self):
         """TC-16: Verify non-positive and malformed quantities are rejected on server"""
         self.client.get("/logout", follow_redirects=True)
@@ -529,9 +497,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Quantity must be at least 1", res_neg.data)
         self.log_result("TC-16", "Quantity Validation", "PASS", "Server-side rejection for non-positive quantities (0, -3).")
 
-    # -----------------------------------------------------------------------
     # TC-17: Incompatible Purchase Mode Validation
-    # -----------------------------------------------------------------------
     def test_17_incompatible_purchase_mode(self):
         """TC-17: Verify mode=buy is rejected for rent-only and mode=rent rejected for sell-only"""
         self.client.get("/logout", follow_redirects=True)
@@ -564,9 +530,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
 
         self.log_result("TC-17", "Incompatible Purchase Mode", "PASS", "Server enforced product purchase mode constraints (sell vs rent).")
 
-    # -----------------------------------------------------------------------
     # TC-18: Double Checkout Prevention
-    # -----------------------------------------------------------------------
     def test_18_double_checkout_prevention(self):
         """TC-18: Verify atomic cart claiming prevents multiple orders from double submission"""
         self.client.get("/logout", follow_redirects=True)
@@ -602,9 +566,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(orders_after, orders_before + 1)
         self.log_result("TC-18", "Double Checkout Prevention", "PASS", "Atomic cart claiming allowed exactly 1 order creation from consecutive submits.")
 
-    # -----------------------------------------------------------------------
     # TC-19: Cart Emptied Post Checkout
-    # -----------------------------------------------------------------------
     def test_19_cart_empty_post_checkout(self):
         """TC-19: Verify user cart document has items: [] after successful checkout"""
         charlie = users_col.find_one({"email": "charlie.d@gmail.com"})
@@ -613,9 +575,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertEqual(len(cart.get("items", [])), 0)
         self.log_result("TC-19", "Cart Emptied Post Checkout", "PASS", "Cart items array verified empty in MongoDB after completed checkout.")
 
-    # -----------------------------------------------------------------------
     # TC-20: Strict Rental Date Validation
-    # -----------------------------------------------------------------------
     def test_20_rental_date_validation(self):
         """TC-20: Verify rental dates must be in future, end after start, and <= 30 days"""
         self.client.get("/logout", follow_redirects=True)
@@ -656,9 +616,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"exceeds the maximum allowed limit of 30 days", res_long.data)
         self.log_result("TC-20", "Rental Date Range Validation", "PASS", "Rejected past dates, inverted date ranges, and bookings exceeding 30 days.")
 
-    # -----------------------------------------------------------------------
     # TC-21: RBAC: Staff Blocked from User Directory
-    # -----------------------------------------------------------------------
     def test_21_rbac_staff_user_directory_restriction(self):
         """TC-21: Verify Staff receives 403 on /admin/users while Admin receives 200"""
         self.client.get("/logout", follow_redirects=True)
@@ -685,9 +643,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"User Directory", res_admin.data)
         self.log_result("TC-21", "Staff User Directory RBAC", "PASS", "Staff role received 403 Forbidden on /admin/users; Admin granted 200 OK access.")
 
-    # -----------------------------------------------------------------------
     # TC-22: Expanded Admin Status Validation Sets & Revenue Pipeline
-    # -----------------------------------------------------------------------
     def test_22_admin_status_validation_and_revenue_flow(self):
         """TC-22: Verify admin routes accept all 6 order/rental statuses and revenue includes 4 statuses"""
         self.client.get("/logout", follow_redirects=True)
@@ -719,9 +675,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
 
         self.log_result("TC-22", "Expanded Status Validation Sets", "PASS", "All 6 order/rental lifecycle statuses accepted; invalid statuses rejected.")
 
-    # -----------------------------------------------------------------------
     # TC-23: CSRF Protection - Missing Token Rejection
-    # -----------------------------------------------------------------------
     def test_23_csrf_missing_token_rejection(self):
         """TC-23: Verify POST /login without CSRF token triggers CSRFError protection when WTF_CSRF_ENABLED=True"""
         csrf_app = create_app()
@@ -738,9 +692,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Your security session expired or the form submission was invalid", res_no_token.data)
         self.log_result("TC-23", "CSRF Missing Token Rejection", "PASS", "POST without CSRF token intercepted by handle_csrf_error and flashed friendly warning.")
 
-    # -----------------------------------------------------------------------
     # TC-24: CSRF Protection - Valid Token Submission
-    # -----------------------------------------------------------------------
     def test_24_csrf_valid_token_submission(self):
         """TC-24: Verify POST /login with valid page-extracted CSRF token successfully logs in"""
         csrf_app = create_app()
@@ -764,9 +716,7 @@ class ProjectorShopTestSuite(unittest.TestCase):
         self.assertIn(b"Sign Out", res_login.data)
         self.log_result("TC-24", "CSRF Valid Token Authentication", "PASS", "POST with extracted form csrf_token successfully authenticated and created session.")
 
-    # -----------------------------------------------------------------------
     # TC-25: CSRF Protection - Admin Route Token Enforcement
-    # -----------------------------------------------------------------------
     def test_25_csrf_admin_post_rejection(self):
         """TC-25: Verify administrative state changes reject POST requests lacking CSRF token"""
         csrf_app = create_app()

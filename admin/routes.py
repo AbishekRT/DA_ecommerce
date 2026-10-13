@@ -1,13 +1,4 @@
-"""
-admin/routes.py
-Administration and Staff Operations routes: product CRUD, order management, rental management,
-and aggregation pipeline demonstrations.
-
-Role Access:
-  - Super Admin ('admin'): Full access (Financial Dashboard, Revenue Aggregation, Product Deletion).
-  - Operations Staff ('staff'): Operational access (Orders, Rentals, Product Creation/Editing).
-  - Customer ('customer'): Restricted (403 Forbidden on all admin routes).
-"""
+"""Admin and staff management routes."""
 
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -27,8 +18,8 @@ from auth.decorators import role_required
 
 admin_bp = Blueprint("admin", __name__, template_folder="../templates/admin")
 
-
 REVENUE_STATUSES = ["confirmed", "processing", "shipped", "completed"]
+
 
 def _oid(s):
     try:
@@ -37,26 +28,18 @@ def _oid(s):
         abort(404)
 
 
-# ===========================================================================
-# DASHBOARD (Admin Only)
-# ===========================================================================
+# Admin Dashboard
 @admin_bp.route("/")
 @login_required
 @role_required("admin")
 def dashboard():
-    """
-    Financial & System Summary Dashboard.
-    Restricted to 'admin' role. Staff are directed to operational views.
-    """
-    total_products  = products_col.count_documents({"is_active": {"$ne": False}})
-    total_orders    = orders_col.count_documents({})
-    total_rentals   = rentals_col.count_documents({})
+    """Summary dashboard and metrics for administrator."""
+    total_products = products_col.count_documents({"is_active": {"$ne": False}})
+    total_orders = orders_col.count_documents({})
+    total_rentals = rentals_col.count_documents({})
     total_customers = users_col.count_documents({"role": "customer"})
 
-    # -----------------------------------------------------------------------
-    # AGGREGATION PIPELINE 1: Revenue by category
-    # Calculates total revenue from orders grouped by product category.
-    # -----------------------------------------------------------------------
+    # Revenue aggregated by category
     revenue_pipeline = [
         {"$match": {"status": {"$in": REVENUE_STATUSES}}},
         {"$unwind": "$items"},
@@ -92,10 +75,7 @@ def dashboard():
     ]
     revenue_by_category = list(orders_col.aggregate(revenue_pipeline))
 
-    # -----------------------------------------------------------------------
-    # AGGREGATION PIPELINE 2: Rental equipment utilisation
-    # Calculates total duration in days each projector was rented.
-    # -----------------------------------------------------------------------
+    # Rental utilization in days
     utilisation_pipeline = [
         {"$match": {"status": {"$in": ["active", "returned"]}}},
         {
@@ -151,14 +131,12 @@ def dashboard():
     )
 
 
-# ===========================================================================
-# PRODUCT MANAGEMENT — LIST (Admin & Staff)
-# ===========================================================================
+# Product Management: List
 @admin_bp.route("/products")
 @login_required
 @role_required("admin", "staff")
 def products_list():
-    """Lists all products with resolved category names."""
+    """List inventory products."""
     products = list(products_col.find({"is_active": {"$ne": False}}).sort("created_at", -1))
     categories = {str(c["_id"]): c["name"] for c in categories_col.find()}
     return render_template(
@@ -168,14 +146,12 @@ def products_list():
     )
 
 
-# ===========================================================================
-# PRODUCT MANAGEMENT — CREATE (Admin & Staff)
-# ===========================================================================
+# Product Management: Create
 @admin_bp.route("/products/new", methods=["GET", "POST"])
 @login_required
 @role_required("admin", "staff")
 def product_create():
-    """Create a new product document."""
+    """Add a new product to inventory."""
     categories = list(categories_col.find())
 
     if request.method == "POST":
@@ -201,20 +177,20 @@ def product_create():
         connectivity = [c.strip() for c in f.get("connectivity", "").split(",") if c.strip()]
 
         product_doc = {
-            "name":       f.get("name", "").strip(),
-            "brand":      f.get("brand", "").strip(),
+            "name": f.get("name", "").strip(),
+            "brand": f.get("brand", "").strip(),
             "category_id": ObjectId(f.get("category_id")),
-            "type":        f.get("type"),
-            "sale_price":  float(f.get("sale_price") or 0) or None,
+            "type": f.get("type"),
+            "sale_price": float(f.get("sale_price") or 0) or None,
             "rent_price_per_day": float(f.get("rent_price_per_day") or 0) or None,
-            "stock_qty":   stock_qty,
-            "image_url":   f.get("image_url", "").strip(),
+            "stock_qty": stock_qty,
+            "image_url": f.get("image_url", "").strip(),
             "description": f.get("description", "").strip(),
             "specs": {
-                "resolution":       f.get("resolution", "").strip(),
+                "resolution": f.get("resolution", "").strip(),
                 "brightness_lumens": int(f.get("brightness_lumens") or 0),
-                "throw_distance":   f.get("throw_distance", "").strip(),
-                "connectivity":     connectivity,
+                "throw_distance": f.get("throw_distance", "").strip(),
+                "connectivity": connectivity,
             },
             "created_at": datetime.now(timezone.utc),
         }
@@ -226,15 +202,13 @@ def product_create():
     return render_template("admin/product_form.html", product=None, categories=categories, action="Create")
 
 
-# ===========================================================================
-# PRODUCT MANAGEMENT — EDIT (Admin & Staff)
-# ===========================================================================
+# Product Management: Edit
 @admin_bp.route("/products/<product_id>/edit", methods=["GET", "POST"])
 @login_required
 @role_required("admin", "staff")
 def product_edit(product_id):
-    """Edit an existing product document."""
-    product    = products_col.find_one({"_id": _oid(product_id)})
+    """Update existing product details."""
+    product = products_col.find_one({"_id": _oid(product_id)})
     categories = list(categories_col.find())
     if not product:
         abort(404)
@@ -264,19 +238,19 @@ def product_edit(product_id):
         products_col.update_one(
             {"_id": _oid(product_id)},
             {"$set": {
-                "name":       f.get("name", "").strip(),
-                "brand":      f.get("brand", "").strip(),
+                "name": f.get("name", "").strip(),
+                "brand": f.get("brand", "").strip(),
                 "category_id": ObjectId(f.get("category_id")),
-                "type":        f.get("type"),
-                "sale_price":  float(f.get("sale_price") or 0) or None,
+                "type": f.get("type"),
+                "sale_price": float(f.get("sale_price") or 0) or None,
                 "rent_price_per_day": float(f.get("rent_price_per_day") or 0) or None,
-                "stock_qty":   stock_qty,
-                "image_url":   f.get("image_url", "").strip(),
+                "stock_qty": stock_qty,
+                "image_url": f.get("image_url", "").strip(),
                 "description": f.get("description", "").strip(),
-                "specs.resolution":        f.get("resolution", "").strip(),
+                "specs.resolution": f.get("resolution", "").strip(),
                 "specs.brightness_lumens": int(f.get("brightness_lumens") or 0),
-                "specs.throw_distance":    f.get("throw_distance", "").strip(),
-                "specs.connectivity":      connectivity,
+                "specs.throw_distance": f.get("throw_distance", "").strip(),
+                "specs.connectivity": connectivity,
             }},
         )
         flash("Product updated successfully.", "success")
@@ -285,27 +259,23 @@ def product_edit(product_id):
     return render_template("admin/product_form.html", product=product, categories=categories, action="Edit")
 
 
-# ===========================================================================
-# PRODUCT MANAGEMENT — DELETE (Admin ONLY)
-# ===========================================================================
+# Product Management: Delete
 @admin_bp.route("/products/<product_id>/delete", methods=["POST"])
 @login_required
 @role_required("admin")
 def product_delete(product_id):
-    """Hard delete a product document. Restricted to Admin."""
+    """Soft delete product by marking inactive."""
     products_col.update_one({"_id": _oid(product_id)}, {"$set": {"is_active": False}})
     flash("Product deleted from catalog.", "warning")
     return redirect(url_for("admin.products_list"))
 
 
-# ===========================================================================
-# ORDERS MANAGEMENT (Admin & Staff)
-# ===========================================================================
+# Orders Management
 @admin_bp.route("/orders")
 @login_required
 @role_required("admin", "staff")
 def orders_list():
-    """All customer orders, newest first."""
+    """List customer orders."""
     orders = list(orders_col.find().sort("created_at", -1))
     for order in orders:
         user = users_col.find_one({"_id": order["user_id"]}, {"name": 1, "email": 1})
@@ -317,7 +287,7 @@ def orders_list():
 @login_required
 @role_required("admin", "staff")
 def update_order_status(order_id):
-    """Update order status (pending -> confirmed -> processing -> shipped -> completed -> cancelled)."""
+    """Update order fulfillment status."""
     new_status = request.form.get("status")
     valid = {"pending", "confirmed", "processing", "shipped", "completed", "cancelled"}
     if new_status not in valid:
@@ -350,14 +320,12 @@ def update_order_status(order_id):
     return redirect(url_for("admin.orders_list"))
 
 
-# ===========================================================================
-# RENTALS MANAGEMENT (Admin & Staff)
-# ===========================================================================
+# Rentals Management
 @admin_bp.route("/rentals")
 @login_required
 @role_required("admin", "staff")
 def rentals_list():
-    """All rental bookings with resolved product and customer details."""
+    """List rental reservations."""
     rentals = list(rentals_col.find().sort("created_at", -1))
     for rental in rentals:
         rental["product"] = products_col.find_one({"_id": rental["product_id"]}, {"name": 1})
@@ -369,7 +337,7 @@ def rentals_list():
 @login_required
 @role_required("admin", "staff")
 def update_rental_status(rental_id):
-    """Update rental status (pending -> confirmed -> reserved -> active -> returned -> cancelled)."""
+    """Update rental reservation status."""
     new_status = request.form.get("status")
     valid = {"pending", "confirmed", "reserved", "active", "returned", "cancelled"}
     if new_status not in valid:
@@ -401,14 +369,12 @@ def update_rental_status(rental_id):
     return redirect(url_for("admin.rentals_list"))
 
 
-# ===========================================================================
-# USER DIRECTORY (Admin Only)
-# ===========================================================================
+# User Directory
 @admin_bp.route("/users")
 @login_required
 @role_required("admin")
 def users_list():
-    """All registered user accounts and RBAC roles."""
+    """List registered users and activity counts."""
     users = list(users_col.find().sort("created_at", -1))
     for u in users:
         u["order_count"] = orders_col.count_documents({"user_id": u["_id"]})
