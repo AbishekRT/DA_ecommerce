@@ -52,28 +52,6 @@
         <a href="{{ url_for('auth.register') }}" class="text-primary fw-semibold text-decoration-none">Create an account</a>
       </p>
     </div>
-
-    <!-- Quick Demo Accounts for Viva / Testing Convenience -->
-    <div class="auth-quick-accounts">
-      <div class="d-flex align-items-center justify-content-between text-muted fw-semibold mb-1.5" style="font-size: 0.725rem; text-transform: uppercase; letter-spacing: 0.5px;">
-        <span><i class="bi bi-key me-1 text-primary"></i>Demo Test Accounts</span>
-        <span class="text-muted fw-normal">Click to fill</span>
-      </div>
-      <div class="d-flex flex-wrap gap-1.5">
-        <button type="button" class="btn btn-light btn-sm border py-0.5 px-2 rounded-2" style="font-size: 0.725rem;"
-                onclick="fillLogin('admin@projectorshop.com', 'ProjAdmin#2026!Secure')">
-          <span class="badge bg-warning text-dark me-1" style="font-size: 0.65rem;">Admin</span>admin@projectorshop.com
-        </button>
-        <button type="button" class="btn btn-light btn-sm border py-0.5 px-2 rounded-2" style="font-size: 0.725rem;"
-                onclick="fillLogin('staff@projectorshop.com', 'ProjStaff#2026!Secure')">
-          <span class="badge bg-info text-dark me-1" style="font-size: 0.65rem;">Staff</span>staff@projectorshop.com
-        </button>
-        <button type="button" class="btn btn-light btn-sm border py-0.5 px-2 rounded-2" style="font-size: 0.725rem;"
-                onclick="fillLogin('alice@example.com', 'Alice#Pass2026$')">
-          <span class="badge bg-secondary me-1" style="font-size: 0.65rem;">Customer</span>alice@example.com
-        </button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -90,11 +68,6 @@ function togglePasswordVisibility(inputId, btn) {
     icon.classList.remove('bi-eye-slash');
     icon.classList.add('bi-eye');
   }
-}
-
-function fillLogin(email, pass) {
-  document.getElementById('email').value = email;
-  document.getElementById('password').value = pass;
 }
 </script>
 {% endblock %}
